@@ -1,0 +1,155 @@
+COD_VAR;LIB_VAR;COD_MOD;LIB_MOD1
+ACT_IR;Secteur d'activité;ENS;Ensemble
+ACT_IR;Secteur d'activité;S_TIC;dont secteur producteur de TIC
+ACT_IR;Secteur d'activité;S_C;Industrie manufacturière
+ACT_IR;Secteur d'activité;S_DE;Énergie, eau, gestion déchets et dépollution
+ACT_IR;Secteur d'activité;S_F;Construction
+ACT_IR;Secteur d'activité;S_G_D45-46;Commerce de gros et réparation d'automobiles et de motocycles
+ACT_IR;Secteur d'activité;S_G_D47;Commerce de détail
+ACT_IR;Secteur d'activité;S_H;Transports et entreposage
+ACT_IR;Secteur d'activité;S_I;Hébergement et restauration
+ACT_IR;Secteur d'activité;S_J_G95.1;Information et communication, réparation d'ordinateurs et d'équipements de communication
+ACT_IR;Secteur d'activité;S_L;Activités immobilières
+ACT_IR;Secteur d'activité;S_M;Activités spécialisées, scientifiques et techniques
+ACT_IR;Secteur d'activité;S_N;Activités de services administratifs et de soutien
+INDIC-table1;Accès à Internet et usages;NB_ENT;Nombre d’entreprises actives dans le champ
+INDIC-table1;Accès à Internet et usages;PO;Effectif occupé annuel moyen en 2022
+INDIC-table1;Accès à Internet et usages;ACCES_INTERNET;Nombre d’entreprises utilisant Internet pour un usage professionnel
+INDIC-table1;Accès à Internet et usages;ACCES_INTERNET_VAL;Nombre de personnes utilisant Internet pour un usage professionnel
+INDIC-table1;Accès à Internet et usages;ACCES_INTERNET_G10;Nombre d’entreprises pour lesquelles plus de 10 % des personnes de l’entreprises utilisent un accès à Internet pour un usage professionnel
+INDIC-table1;Accès à Internet et usages;ACCES_INTERNET_G50;Nombre d’entreprises pour lesquelles plus de 50 % des personnes de l’entreprises utilisent un accès à Internet pour un usage professionnel
+INDIC-table1;Accès à Internet et usages;FIXE_HAUT_DEBIT;Nombre d’entreprises accédant à Internet à l'aide d'une connexion fixe haut débit ou très haut débit
+INDIC-table1;Accès à Internet et usages;VITESSE_CONNEX_0;Nombre d’entreprises dont la vitesse de téléchargement maximale contractuelle de la connexion fixe à Internet est inférieure à 30 Mbit/s.
+INDIC-table1;Accès à Internet et usages;VITESSE_CONNEX_4;Nombre d’entreprises dont la vitesse de téléchargement maximale contractuelle de la connexion fixe à Internet est comprise entre 30 Mbit/s et moins de 100 Mbit/s.
+INDIC-table1;Accès à Internet et usages;VITESSE_CONNEX_7;Nombre d’entreprises dont la vitesse de téléchargement maximale contractuelle de la connexion fixe à Internet est comprise entre 100 Mbit/s et moins de 500 Mbit/s.
+INDIC-table1;Accès à Internet et usages;VITESSE_CONNEX_8;Nombre d’entreprises dont la vitesse de téléchargement maximale contractuelle de la connexion fixe à Internet est comprise entre 500 Mbit/s et moins de 1 Gbit/s.
+INDIC-table1;Accès à Internet et usages;VITESSE_CONNEX_9;Nombre d’entreprises dont la vitesse de téléchargement maximale contractuelle de la connexion fixe à Internet est de 1 Gbit/s ou plus.
+INDIC-table1;Accès à Internet et usages;SITE_WEB;Nombre d’entreprises disposant d'un site web en propre ou partagé
+INDIC-table1;Accès à Internet et usages;CATALOGUES;Nombre d’entreprises dont le site web propose la description ou le prix de biens ou services
+INDIC-table1;Accès à Internet et usages;COMMANDE;Nombre d’entreprises dont le site web propose la commande ou la réservation en ligne
+INDIC-table1;Accès à Internet et usages;PERSO_PRODUIT;Nombre d’entreprises dont le site web offre la possibilité de personnaliser ou de concevoir des biens ou des services en ligne
+INDIC-table1;Accès à Internet et usages;SUIVI;Nombre d’entreprises dont le site web propose le suivi de commande par le client
+INDIC-table1;Accès à Internet et usages;PERSO_CONTENU;Nombre d’entreprises dont le site web propose un contenu personnalisé du site pour les visiteurs réguliers ou habitués
+INDIC-table1;Accès à Internet et usages;SERVICE_CHAT;Nombre d’entreprises dont le site web propose un service de chat pour le service client
+INDIC-table1;Accès à Internet et usages;ANNONCES_POSTES;Nombre d’entreprises dont le site web propose des annonces de postes vacants ou un système de candidature en ligne
+INDIC-table1;Accès à Internet et usages;MULTI_LANGUES;Nombre d’entreprises dont le site web propose du contenu disponible dans au moins deux langues
+INDIC-table1;Accès à Internet et usages;SW_FREQUENTATION;Nombre d’entreprises qui mesurent la fréquentation de leur site web
+INDIC-table1;Accès à Internet et usages;SW_FREQUENTATION_VAL_0_15;Nombre d’entreprises qui ont moins de 15000 visites sur leur site web
+INDIC-table1;Accès à Internet et usages;SW_FREQUENTATION_VAL_15_100;Nombre d’entreprises qui ont de 15000 à moins de 100000 visites sur leur site web
+INDIC-table1;Accès à Internet et usages;SW_FREQUENTATION_VAL_100_500;Nombre d’entreprises qui ont de 100000 à moins de 500000 visites sur leur site web
+INDIC-table1;Accès à Internet et usages;SW_FREQUENTATION_VAL_GE500;Nombre d’entreprises qui ont plus de 500000 visites sur leur site web
+INDIC-table1;Accès à Internet et usages;APPLI_MOBILE;Nombre d’entreprises qui disposent d’une application mobile pour les clients
+INDIC-table1;Accès à Internet et usages;MEDIA_SOC;Nombre d'entreprises qui utilisent un réseau social, un blog d’entreprise ou micro-blog, ou des sites web de partage de contenu multimédia
+INDIC-table1;Accès à Internet et usages;RESEAU_SOC;Nombre d'entreprises qui utilisent un réseau social
+INDIC-table1;Accès à Internet et usages;BLOG;Nombre d'entreprises qui utilisent un blog d’entreprise ou micro-blog
+INDIC-table1;Accès à Internet et usages;MULTIMEDIA;Nombre d'entreprises qui utilisent des sites web de partage de contenu multimédia
+INDIC-table1;Accès à Internet et usages;MEDSOC_IMAGE;Nombre d'entreprises utilisant un des médias sociaux pour développer l’image de l’entreprise ou des produits
+INDIC-table1;Accès à Internet et usages;MEDSOC_AVISCL;Nombre d'entreprises utilisant un des médias sociaux pour obtenir ou répondre aux avis, commentaires et questions des clients
+INDIC-table1;Accès à Internet et usages;MEDSOC_INNOV;Nombre d'entreprises utilisant un des médias sociaux pour impliquer les clients dans le développement ou l’innovation de biens ou de services
+INDIC-table1;Accès à Internet et usages;MEDSOC_COLLAB;Nombre d'entreprises utilisant un des médias sociaux pour collaborer avec des partenaires commerciaux ou d’autres organisations
+INDIC-table1;Accès à Internet et usages;MEDSOC_RECRUT;Nombre d'entreprises utilisant un des médias sociaux pour recruter des salariés
+INDIC-table1;Accès à Internet et usages;MEDSOC_AVISENT;Nombre d'entreprises utilisant un des médias sociaux pour échanger des points de vue, des avis ou des connaissances au sein de l’entreprise
+INDIC-table1;Accès à Internet et usages;PUB_INTERNET;Nombre d'entreprises qui achètent des services de publicité sur Internet
+INDIC-table1;Accès à Internet et usages;PUB_CONT;Nombre d'entreprises qui achètent des services de publicité ciblée sur Internet qui utilisent le contenu de pages web ou mots-clés cherchés par les internautes
+INDIC-table1;Accès à Internet et usages;PUB_PROFIL;Nombre d'entreprises qui achètent des services de publicité ciblée sur Internet qui utilisent le suivi des activités passées des internautes ou leur profil
+INDIC-table1;Accès à Internet et usages;PUB_GEOLOC;Nombre d'entreprises qui achètent des services de publicité ciblée sur Internet qui utilisent la géolocalisation des internautes
+INDIC-table1;Accès à Internet et usages;PUB_AUTRE;Nombre d'entreprises qui achètent des services de publicité ciblée sur Internet qui utilisent toute autre méthode non spécifiée ci-dessus
+INDIC-table2;Commerce électronique;NB_ENT;Nombre d’entreprises actives dans le champ
+INDIC-table2;Commerce électronique;CA;Montant du chiffre d'affaires hors taxes total en 2022 (k€)
+INDIC-table2;Commerce électronique;VENT_WEB;Nombre d’entreprises réalisant des ventes web de biens ou de services
+INDIC-table2;Commerce électronique;VENT_APPLI_WEB;Nombre d’entreprises réalisant des ventes web de biens ou de services via leurs sites web ou applis mobiles
+INDIC-table2;Commerce électronique;VENT_APPLI_MARKET;Nombre d’entreprises réalisant des ventes web de biens ou de services via des places de marché (marketplaces) utilisées par plusieurs entreprises pour commercialiser des produits
+INDIC-table2;Commerce électronique;VENT_APPLI_WEBMARKET;Nombre d’entreprises réalisant des ventes web de biens ou de services via leurs sites web ou applis mobiles et via des places de marché
+INDIC-table2;Commerce électronique;VENT_WEB_VAL;Montant du chiffre d'affaires généré par les ventes web de biens ou de services (en K€).
+INDIC-table2;Commerce électronique;VENT_WEB_VAL_GE10;Nombre d’entreprises dont le pourcentage de ventes web est supérieur ou égal à 10 %
+INDIC-table2;Commerce électronique;VENT_WEB_VAL_GE25;Nombre d’entreprises dont le pourcentage de ventes web est supérieur ou égal à 25 %
+INDIC-table2;Commerce électronique;VENT_WEB_VAL_GE50;Nombre d’entreprises dont le pourcentage de ventes web est supérieur ou égal à 50 %
+INDIC-table2;Commerce électronique;VENT_APPLI_WEB_VAL;Montant des ventes web réalisées sur les sites web ou applis mobiles (y compris les extranets).
+INDIC-table2;Commerce électronique;VENT_APPLI_MARKET_VAL;Montant des ventes web réalisées sur les places de marché utilisées par plusieurs entreprises pour commercialiser des produits
+INDIC-table2;Commerce électronique;VENT_APPLI_MARKET_VAL_GE20;Nombre d’entreprises dont le pourcentage de ventes sur les places de marché est supérieur ou égal à 20 %
+INDIC-table2;Commerce électronique;VENT_APPLI_MARKET_VAL_GE50;Nombre d’entreprises dont le pourcentage de ventes sur les places de marché est supérieur ou égal à 50 %
+INDIC-table2;Commerce électronique;VENT_COMM_MARKET_1;Nombre d’entreprises dont le taux moyen des commissions prélevées par les places de marché est de moins de 5 %.
+INDIC-table2;Commerce électronique;VENT_COMM_MARKET_2;Nombre d’entreprises dont le taux moyen des commissions prélevées par les places de marché est de 5 à moins de 9 %.
+INDIC-table2;Commerce électronique;VENT_COMM_MARKET_3;Nombre d’entreprises dont le taux moyen des commissions prélevées par les places de marché est de 9 à moins de 12 %.
+INDIC-table2;Commerce électronique;VENT_COMM_MARKET_4;Nombre d’entreprises dont le taux moyen des commissions prélevées par les places de marché est de 12 à moins de 15 %.
+INDIC-table2;Commerce électronique;VENT_COMM_MARKET_5;Nombre d’entreprises dont le taux moyen des commissions prélevées par les places de marché est de 15 à moins de 20 %.
+INDIC-table2;Commerce électronique;VENT_COMM_MARKET_6;Nombre d’entreprises dont le taux moyen des commissions prélevées par les places de marché est de 20 % ou plus
+INDIC-table2;Commerce électronique;VENT_BTOC;Nombre de ventes web aux particuliers en 2022 (BtoC)
+INDIC-table2;Commerce électronique;VENT_BTOB;Nombre de ventes web à d’autres entreprises (inter-entreprises) ou administrations en 2022 (BtoB)
+INDIC-table2;Commerce électronique;BTOC_VAL;Montant des ventes web aux particuliers en 2022 (BtoC)
+INDIC-table2;Commerce électronique;BTOC_VAL_GE5VW;Nombre d’entreprises dont le montant des ventes aux particuliers (B2C) est supérieur ou égal à 5 % du montant des ventes web réalisées
+INDIC-table2;Commerce électronique;BTOC_VAL_GE10VW;Nombre d’entreprises dont le montant des ventes aux particuliers (B2C) est supérieur ou égal à 10 % du montant des ventes web réalisées
+INDIC-table2;Commerce électronique;BTOB_VAL;Montant des ventes web à d’autres entreprises (inter-entreprises) ou administrations en 2022 (BtoB)
+INDIC-table2;Commerce électronique;VENT_EDI;Nombre d’entreprises ayant réalisé en 2022 des ventes de biens ou de services via des procédures de type Échange de Données Informatisé (EDI).
+INDIC-table2;Commerce électronique;VENT_EDI_VAL;Montant du chiffre d'affaires généré par les ventes de type Échange de Données Informatisé  (EDI) (en K€), en 2022
+INDIC-table2;Commerce électronique;VENT_EDI_VAL_GE10;Nombre d’entreprises dont le montant des ventes EDI est supérieur ou égal à 10 % du chiffre d’affaires
+INDIC-table2;Commerce électronique;VENT_EDI_VAL_GE25;Nombre d’entreprises dont le montant des ventes EDI est supérieur ou égal à 25 % du chiffre d’affaires
+INDIC-table2;Commerce électronique;VENT_EDI_VAL_GE50;Nombre d’entreprises dont le montant des ventes EDI est supérieur ou égal à 50 % du chiffre d’affaires
+INDIC-table2;Commerce électronique;VENT_ELECT;Nombre de ventes réalisées via un site web ou appli et de ventes de type Échange de Données Informatisé (EDI)
+INDIC-table2;Commerce électronique;VENT_ELECT_VAL;Montant des ventes réalisées via un site web ou appli et des ventes de type Échange de Données Informatisé (EDI)
+INDIC-table3;Utilisation, partage, analyse et échange de données;NB_ENT;Nombre d’entreprises actives dans le champ
+INDIC-table3;Utilisation, partage, analyse et échange de données;PGI_ERP;Nombre d’entreprises qui utilisent un progiciel de gestion intégré (PGI ou ERP)
+INDIC-table3;Utilisation, partage, analyse et échange de données;GRC_CRM;Nombre d’entreprises qui utilisent un logiciel pour la gestion de la relation client (GRC ou CRM)
+INDIC-table3;Utilisation, partage, analyse et échange de données;ID_BI;Nombre d’entreprises qui utilisent un logiciel d’informatique décisionnelle (business intelligence)
+INDIC-table3;Utilisation, partage, analyse et échange de données;LOGICIEL_GESTION;Nombre d’entreprises qui utilisent un progiciel de gestion intégré (PGI ou ERP) ou un logiciel pour la gestion de la relation client (GRC ou CRM) ou un logiciel d’informatique décisionnelle (business intelligence)
+INDIC-table3;Utilisation, partage, analyse et échange de données;PARTAGE_DONNEES;Nombre d'entreprises qui partagent des données par voie électronique avec des fournisseurs ou des clients au sein de la chaîne d’approvisionnement
+INDIC-table3;Utilisation, partage, analyse et échange de données;ANALYSE_DONNEES_INT;Nombre d'entreprises qui réalisent analyses de données en interne, par ses propres employés
+INDIC-table3;Utilisation, partage, analyse et échange de données;DONNEES_TRANSAC;Nombre d'entreprises qui réalisent des analyses de données à partir de données provenant des enregistrements des transactions
+INDIC-table3;Utilisation, partage, analyse et échange de données;DONNEES_CLIENTS;Nombre d'entreprises qui réalisent des analyses de données à partir de données relatives aux clients
+INDIC-table3;Utilisation, partage, analyse et échange de données;DONNEES_MEDIA_SOC;Nombre d'entreprises qui réalisent des analyses de données à partir de données provenant de médias sociaux, y compris des profils de médias sociaux de l’entreprise
+INDIC-table3;Utilisation, partage, analyse et échange de données;DONNEES_WEB;Nombre d'entreprises qui réalisent des analyses de données à partir de données web
+INDIC-table3;Utilisation, partage, analyse et échange de données;DONNEES_GEOLOC;Nombre d'entreprises qui réalisent des analyses de données à partir de données de géolocalisation issues d'appareils portables ou de véhicules
+INDIC-table3;Utilisation, partage, analyse et échange de données;DONNEES_OBJET;Nombre d'entreprises qui réalisent des analyses de données à partir de données provenant d'appareils ou capteurs intelligents
+INDIC-table3;Utilisation, partage, analyse et échange de données;DONNEES_GOUV;Nombre d'entreprises qui réalisent des analyses de données à partir de données des autorités gouvernementales en accès libre
+INDIC-table3;Utilisation, partage, analyse et échange de données;DONNEES_SAT;Nombre d'entreprises qui réalisent des analyses de données à partir de données satellitaires
+INDIC-table3;Utilisation, partage, analyse et échange de données;DONNEES_PRESTATAIRE;Nombre d'entreprises pour lesquelles une entreprise ou organisation externe réalise des analyses de données
+INDIC-table3;Utilisation, partage, analyse et échange de données;VENTE_DONNEES;Nombre d’entreprises qui ont vendu (l’accès à) leurs propres données
+INDIC-table3;Utilisation, partage, analyse et échange de données;ACHAT_DONNEES;Nombre d’entreprises qui ont acheté (l’accès à) des données
+INDIC-table3;Utilisation, partage, analyse et échange de données;ACHAT_INTERMEDIAIRE;Nombre d'entreprises qui ont acheté des données auprès d’une entreprise spécialisée dans la collecte et la vente de données
+INDIC-table4;Services de cloud computing;NB_ENT;Nombre d’entreprises actives dans le champ
+INDIC-table4;Services de cloud computing;CLOUD;Nombre d’entreprises qui achètent des services de cloud computing (hors services de cloud gratuit)
+INDIC-table4;Services de cloud computing;COURRIEL;Nombre d’entreprises qui achètent des services de courrier électronique (utilisé sur Internet en cloud - hors services de cloud gratuit)
+INDIC-table4;Services de cloud computing;LOGICIELS;Nombre d’entreprises qui achètent des services de logiciels de bureautique (utilisé sur Internet en cloud - hors services de cloud gratuit)
+INDIC-table4;Services de cloud computing;COMPTA;Nombre d’entreprises qui achètent des services de logiciels de comptabilité (utilisé sur Internet en cloud - hors services de cloud gratuit)
+INDIC-table4;Services de cloud computing;CLOUD_ERP;Nombre d’entreprises qui achètent des services d’applications logicielles d’ERP (enterprise resource planning, progiciel de gestion intégrée) (utilisé sur Internet en cloud - hors services de cloud gratuit)
+INDIC-table4;Services de cloud computing;REL_CLIENT;Nombre d’entreprises qui achètent des services de système de gestion de la relation clientèle (GRC/CRM) (utilisé sur Internet en cloud - hors services de cloud gratuit)
+INDIC-table4;Services de cloud computing;CLOUD_SECU;Nombre d’entreprises qui achètent des services d’applications logicielles de sécurité (utilisé sur Internet en cloud - hors services de cloud gratuit)
+INDIC-table4;Services de cloud computing;BASES;Nombre d’entreprises qui achètent des services d’hébergement de base(s) de données de l’entreprise (utilisé sur Internet en cloud - hors services de cloud gratuit)
+INDIC-table4;Services de cloud computing;STOCKAGE;Nombre d’entreprises qui achètent des services de stockage de fichiers (utilisé sur Internet en cloud - hors services de cloud gratuit)
+INDIC-table4;Services de cloud computing;CALCUL;Nombre d’entreprises qui achètent des services de puissance de calcul pour faire fonctionner les logiciels de l’entreprise (utilisé sur Internet en cloud - hors services de cloud gratuit)
+INDIC-table4;Services de cloud computing;CLOUD_PAAS;Nombre d’entreprises qui achètent des services de plateforme numérique fournissant un environnement hébergé pour le développement, le test et le déploiement d’applications (utilisé sur Internet en cloud - hors services de cloud gratuit)
+INDIC-table4;Services de cloud computing;CLOUD_BASIC;Nombre d’entreprises qui achètent des services cloud « basiques » uniquement : courrier électronique, logiciels de bureautique, stockage de fichiers, puissance de calcul pour faire fonctionner les logiciels de l’entreprise.
+INDIC-table4;Services de cloud computing;CLOUD_INTERM;Nombre d’entreprises qui achètent des services de cloud « intermédiaires », sans acheter de services de cloud « sophistiqués » : logiciels de comptabilité, applications logicielles d’ERP, système de gestion de la relation clientèle (GRC/CRM).
+INDIC-table4;Services de cloud computing;CLOUD_AVANCE;Nombre d’entreprises qui achètent des services de cloud « sophistiqués » : applications logicielles de sécurité, hébergement de base(s) de données de l’entreprise, plateforme numérique fournissant un environnement hébergé pour le développement, le test et le déploiement d’applications (utilisée sur Internet en cloud).
+INDIC-table5;Intelligence artificielle;NB_ENT;Nombre d’entreprises actives dans le champ
+INDIC-table5;Intelligence artificielle;IA_TECH;Nombre d’entreprises qui utilisent au moins une des technologies d’intelligence artificielle citées
+INDIC-table5;Intelligence artificielle;IA_TECH_TEXMIN;Nombre d’entreprises qui utilisent des technologies d'intelligence artificielle réalisant des analyses de langage écrit
+INDIC-table5;Intelligence artificielle;IA_TECH_PAROLE;Nombre d’entreprises qui utilisent des technologies d'intelligence artificielle convertissant du langage parlé en un format lisible par une machine
+INDIC-table5;Intelligence artificielle;IA_TECH_GAT;Nombre d’entreprises qui utilisent des technologies d'intelligence artificielle générant du langage parlé ou écrit
+INDIC-table5;Intelligence artificielle;IA_TECH_IMAGES;Nombre d’entreprises qui utilisent des technologies d'intelligence artificielle identifiant des objets ou des personnes à partir d’images ou de vidéos
+INDIC-table5;Intelligence artificielle;IA_TECH_AAAD;Nombre d’entreprises qui utilisent des technologies d'apprentissage automatique (machine learning) pour de l’analyse de données
+INDIC-table5;Intelligence artificielle;IA_TECH_DECIS;Nombre d’entreprises qui utilisent des technologies d'intelligence artificielle automatisant différentes tâches ou assistant dans la prise de décision
+INDIC-table5;Intelligence artificielle;IA_TECH_MVT;Nombre d’entreprises qui utilisent des technologies d'intelligence artificielle permettant le mouvement physique de machines par des décisions autonomes fondées sur l’observation des environs
+INDIC-table5;Intelligence artificielle;IA_US;Nombre d’entreprises qui utilisent les systèmes ou logiciels d’intelligence artificielle pour au moins une des raisons cités
+INDIC-table5;Intelligence artificielle;IA_US_MARKETING;Nombre d’entreprises qui utilisent des systèmes ou logiciels d’intelligence artificielle pour le marketing ou les ventes
+INDIC-table5;Intelligence artificielle;IA_US_PRODUCT;Nombre d’entreprises qui utilisent des systèmes ou logiciels d’intelligence artificielle pour les processus de production
+INDIC-table5;Intelligence artificielle;IA_US_ADMIN;Nombre d’entreprises qui utilisent des systèmes ou logiciels d’intelligence artificielle pour l’organisation des processus d’administration de l’entreprise
+INDIC-table5;Intelligence artificielle;IA_US_LOGISTIQ;Nombre d’entreprises qui utilisent des systèmes ou logiciels d’intelligence artificielle pour la logistique
+INDIC-table5;Intelligence artificielle;IA_US_SECU;Nombre d’entreprises qui utilisent des systèmes ou logiciels d’intelligence artificielle pour la sécurité informatique
+INDIC-table5;Intelligence artificielle;IA_US_COMPTA;Nombre d’entreprises qui utilisent des systèmes ou logiciels d’intelligence artificielle pour la comptabilité, le contrôle de gestion ou la gestion financière
+INDIC-table5;Intelligence artificielle;IA_US_RECHERCHE;Nombre d’entreprises qui utilisent des systèmes ou logiciels d’intelligence artificielle pour la recherche et le développement (R&D) ou l’innovation (à l’exclusion de la recherche sur l’intelligence artificielle)
+INDIC-table6;Facturation;NB_ENT;Nombre d’entreprises actives dans le champ
+INDIC-table6;Facturation;ENV_FACT_STRUC;Nombre d’entreprises qui ont envoyé des factures électroniques structurées pouvant être traitées automatiquement par une machine en 2022 (EDI, XML, etc.) (transmission de fichiers PDF, JPEG, TIFF, etc. exclue)
+INDIC-table6;Facturation;ENV_FACT_NONSTRUC;Nombre d’entreprises qui ont envoyé des factures électroniquement ne permettant pas de traitement automatique en 2022
+INDIC-table6;Facturation;ENV_FACT_ELECT;Nombre d’entreprises qui ont envoyé des factures électroniques structurées pouvant être traitées automatiquement par une machine ou des factures ne permettant pas de traitement automatique en 2022
+INDIC-table6;Facturation;ENV_FACT_PAP;Nombre d’entreprises qui ont envoyé des factures papier en 2022
+INDIC-table6;Facturation;ENV_FACT_ELECT_1;Nombre d’entreprises qui ont envoyé moins de 10% de factures électroniques dans une structure standard adaptée à un traitement automatisé sur l'ensemble des factures envoyées en 2022
+INDIC-table6;Facturation;ENV_FACT_ELECT_2;Nombre d’entreprises qui ont envoyé de 10 % à moins de 25 % de factures électroniques dans une structure standard adaptée à un traitement automatisé sur l'ensemble des factures en 2022
+INDIC-table6;Facturation;ENV_FACT_ELECT_3;Nombre d’entreprises qui ont envoyé de 25 % à moins de 50 % de factures électroniques dans une structure standard adaptée à un traitement automatisé sur l'ensemble des factures envoyées en 2022
+INDIC-table6;Facturation;ENV_FACT_ELECT_4;Nombre d’entreprises qui ont envoyé de 50 % à moins de 75 % de factures électroniques dans une structure standard adaptée à un traitement automatisé sur l'ensemble des factures envoyées en 2022
+INDIC-table6;Facturation;ENV_FACT_ELECT_5;Nombre d’entreprises qui ont envoyé 75 % ou plus de factures électroniques dans une structure standard adaptée à un traitement automatisé sur l'ensemble des factures envoyées en 2022
+Taille_IR;Taille;ENS;Ensemble
+Taille_IR;Taille;PO1;Moins de 20 personnes occupées
+Taille_IR;Taille;PO2;De 20 à 49 personnes occupées
+Taille_IR;Taille;PO3;De 50 à 249 personnes occupées
+Taille_IR;Taille;PO4;250 personnes occupées ou plus
