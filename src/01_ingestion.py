@@ -5,13 +5,13 @@ import io
 import logging
 import time
 
-# --- Gestion experte des chemins ---
-# 1. On récupère le chemin absolu du dossier où se trouve ce script (src)
+
+# On récupère le chemin absolu du dossier où se trouve ce script (src)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-# 2. On remonte d'un cran pour obtenir la racine du projet (projet-maturite-digitale)
+# On remonte d'un cran pour obtenir la racine du projet (projet-maturite-digitale)
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 
-# 3. On définit les vrais chemins absolus
+# On définit les vrais chemins absolus
 LOG_DIR = os.path.join(PROJECT_ROOT, "logs")
 RAW_DIR = os.path.join(PROJECT_ROOT, "data", "raw")
 

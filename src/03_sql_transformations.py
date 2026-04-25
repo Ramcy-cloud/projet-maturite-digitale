@@ -26,7 +26,7 @@ DB_PATH = os.path.join(PROCESSED_DIR, 'maturite_digitale.db')
 def create_maturity_score(conn):
     """Exécute les jointures SQL et calcule le score de maturité digital."""
     
-    # La requête SQL de niveau Consultant/Ingénieur
+
     # On transforme les valeurs brutes en pourcentage en divisant par nb_ent
     query = """
     WITH CloudMaturity AS (
