@@ -95,7 +95,7 @@ Les codes de secteur (`S_C`, `S_TIC`, `S_M`…) et leurs libellés officiels son
 ### Installation
 
 ```bash
-pip install pandas requests sqlalchemy
+pip install -r requirements.txt
 ```
 
 `sqlite3` fait partie de la bibliothèque standard de Python : il ne s'installe pas avec `pip`.
@@ -111,6 +111,16 @@ python src/03_sql_transformations.py  # Calcule les scores → table entreprise_
 ```
 
 Les chemins sont calculés à partir de l'emplacement des scripts : ils peuvent être lancés depuis n'importe quel dossier. Les journaux d'exécution sont ajoutés dans `logs/pipeline.log` (dossier créé automatiquement, non versionné).
+
+Sous Windows, les scripts affichent des emojis : si la console les refuse (`UnicodeEncodeError`), préfixer les commandes par `PYTHONIOENCODING=utf-8` (ou `$env:PYTHONIOENCODING = "utf-8"` sous PowerShell).
+
+### Vérification
+
+```bash
+python tests/verifie_pipeline.py
+```
+
+Le script rejoue les étapes 02 et 03 sur une **copie** des données brutes (jamais sur les fichiers versionnés) et contrôle 15 invariants : aucune mesure chargée en texte, les 4 lignes sous secret statistique restent NULL et ne valent jamais 0, les 61 autres gardent un score complet, le score global égale la somme des trois sous-scores et reste dans `[0, 100]`, deux valeurs de référence, le classement qui renvoie les lignes non calculables en dernier, et la concordance entre `entreprise_score_final.csv` versionné et le rejeu. C'est ce script que lance la CI.
 
 Détail des étapes :
 
@@ -131,6 +141,15 @@ Détail des étapes :
 
 Le dépôt contient déjà les fichiers produits par ces trois étapes (`data/raw/` et `data/processed/`) : il n'est pas nécessaire de relancer le pipeline pour ouvrir le tableau de bord.
 
+### Intégration et livraison continues
+
+Les workflows GitHub Actions n'embarquent aucune logique : ils appellent les workflows réutilisables de [`Ramcy-cloud/ci-templates`](https://github.com/Ramcy-cloud/ci-templates) en version `@v1`.
+
+- **`.github/workflows/ci.yml`** — sur chaque pull request et chaque push sur `main` : installe `requirements.txt`, lance `tests/verifie_pipeline.py`, puis publie les données calculées comme artefact `build-donnees`. Le job de verrou du flux de branches (une pull request vers `main` doit venir de `dev`) est écrit mais commenté : le workflow réutilisable correspondant n'est pas encore inclus dans le tag `v1` de `ci-templates`.
+- **`.github/workflows/cd.yml`** — livraison continue : déclenchée par une CI verte sur `main`, elle republie les artefacts en paquet `livraison-<sha>` via l'environnement GitHub `production`. Celui-ci exige une validation manuelle (`Actions` → exécution `CD` → `Review deployments` → `Approve`) : **rien n'est livré automatiquement**.
+
+L'étape `01_ingestion.py` n'est pas rejouée en CI (elle téléchargerait l'archive INSEE) : les CSV bruts sont versionnés dans `data/raw/`.
+
 ### Tableau de bord
 
 Ouvrir `visualisation.pbix` avec **Power BI Desktop** (Windows). Les visuels s'appuient sur une table nommée `entreprise_score_final`, avec des colonnes renommées (« Performance Cloud », « Performance Data », « Performance IA », « Secteur d'activité », « Taille de l'Entreprise ») ; les libellés officiels viennent du dictionnaire `metadonnees_irecotic23.csv`. Si la source de données n'est pas trouvée à l'ouverture, il faut la repointer vers le fichier local.
@@ -143,6 +162,9 @@ Ouvrir `visualisation.pbix` avec **Power BI Desktop** (Windows). Les visuels s'a
 
 ```
 projet-maturite-digitale/
+├── .github/workflows/
+│   ├── ci.yml                        # Vérification (appelle ci-templates@v1)
+│   └── cd.yml                        # Livraison après validation manuelle
 ├── data/
 │   ├── raw/                          # CSV extraits de l'archive INSEE
 │   │   ├── insee_data.csv            #   table 3 : usage et analyse des données
@@ -158,6 +180,9 @@ projet-maturite-digitale/
 │   ├── 01_ingestion.py               # Téléchargement et extraction
 │   ├── 02_load_to_sqlite.py          # Chargement dans SQLite
 │   └── 03_sql_transformations.py     # Calcul du score de maturité
+├── tests/
+│   └── verifie_pipeline.py           # Rejoue le pipeline et contrôle les invariants
+├── requirements.txt                  # Dépendances du pipeline
 ├── visualisation.pbix                # Tableau de bord Power BI
 ├── LICENSE
 └── README.md

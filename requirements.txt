@@ -1,0 +1,5 @@
+# Dépendances du pipeline ETL (src/01 à src/03).
+# Installation : pip install -r requirements.txt
+pandas>=2.0
+requests>=2.31
+SQLAlchemy>=2.0
