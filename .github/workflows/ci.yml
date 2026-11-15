@@ -36,7 +36,10 @@ jobs:
     uses: Ramcy-cloud/ci-templates/.github/workflows/python-ci.yml@v1
     with:
       working-directory: .
-      python-version: "3.11"
+      # 3.12 minimum : src/02_load_to_sqlite.py contient une barre oblique
+      # inverse dans une f-string, refusée par Python 3.11 (SyntaxError).
+      # C'est la contrainte déjà documentée dans le README.
+      python-version: "3.12"
       requirements-file: requirements.txt
       # Rejoue les étapes 02 et 03 sur une copie des données brutes et contrôle
       # les invariants du score. Garde-fou principal : le marqueur INSEE de
