@@ -44,7 +44,7 @@ Ces pondérations (30 / 40 / 30) sont un choix du projet, pas une norme de l'INS
 
 ## Résultat / ce qu'on obtient
 
-- Un tableau de **65 lignes** (13 secteurs, dont « Ensemble », × 5 catégories de taille, dont « Ensemble ») avec, pour chacune : le nombre d'entreprises, les trois sous-scores, la part d'entreprises équipées d'un ERP (logiciel de gestion intégré qui centralise comptabilité, stocks, achats…) et le **score global sur 100**.
+- Un tableau de **65 lignes** (13 secteurs, dont « Ensemble », × 5 catégories de taille, dont « Ensemble ») avec, pour chacune : le nombre d'entreprises, les trois sous-scores, la part d'entreprises équipées d'un ERP (logiciel de gestion intégré qui centralise comptabilité, stocks, achats…), le **score global sur 100** et un indicateur `secret_statistique` (`1` si le score n'est pas calculable, voir plus bas).
 - Ce tableau est disponible dans `data/processed/entreprise_score_final.csv` et dans la table `entreprise_score` de la base SQLite.
 
 Quelques valeurs tirées de ce fichier :
@@ -54,7 +54,7 @@ Quelques valeurs tirées de ce fichier :
 | Activités spécialisées, scientifiques et techniques | 250 personnes ou plus | 61,9 / 100 (le plus élevé) |
 | Ensemble des secteurs | Ensemble des tailles | 18,99 / 100 |
 
-> Attention : certaines cases de l'INSEE sont masquées (valeur `s`). Le calcul actuel les compte comme 0, ce qui fait apparaître un score IA de 0 pour certains secteurs (énergie, immobilier). Ces scores sont donc **sous-estimés** pour les lignes concernées.
+> Secret statistique : certaines cases de l'INSEE sont masquées (valeur `s`) quand l'effectif est trop faible pour être publié. Elles sont chargées comme **valeurs nulles**, jamais comme des 0. Pour 4 lignes sur 65 (énergie / eau-déchets `S_DE` et immobilier `S_L`, tailles `po2` et `po4`), l'indicateur IA est masqué : `score_ia` et `digital_maturity_score` y sont donc vides et la colonne `secret_statistique` vaut `1`. Mieux vaut une case vide qu'un score sous-estimé présenté comme une mesure.
 
 - Un tableau de bord Power BI (`visualisation.pbix`, une page) avec :
   - un graphique en barres des performances Cloud, Data et IA par secteur d'activité ;
@@ -115,7 +115,7 @@ Les chemins sont calculés à partir de l'emplacement des scripts : ils peuvent 
 Détail des étapes :
 
 1. **`01_ingestion.py`** — télécharge `https://www.insee.fr/fr/statistiques/fichier/7729450/irecotic23_csv.zip` (délai maximal 20 s) et extrait les fichiers dont le nom contient `table3`, `table4` et `table5`, renommés en `insee_data.csv`, `insee_cloud.csv` et `insee_ia.csv`. Aucun nettoyage de valeurs n'est fait à cette étape.
-2. **`02_load_to_sqlite.py`** — lit chaque CSV (séparateur `;`, UTF-8), normalise les noms de colonnes (minuscules, espaces / apostrophes / tirets remplacés par `_`) et remplace la table du même nom dans SQLite.
+2. **`02_load_to_sqlite.py`** — lit chaque CSV (séparateur `;`, UTF-8), convertit le marqueur INSEE de secret statistique `s` en valeur nulle sur toutes les colonnes de mesure (sans quoi la colonne serait chargée en texte et `CAST('s' AS FLOAT)` vaudrait silencieusement 0 dans SQLite), normalise les noms de colonnes (minuscules, espaces / apostrophes / tirets remplacés par `_`) et remplace la table du même nom dans SQLite.
 3. **`03_sql_transformations.py`** — requête SQL avec trois CTE (`CloudMaturity`, `IAMaturity`, `DataMaturity`) jointes sur `act_ir` et `taille_ir` :
 
    | Indicateur | Colonne INSEE | Calcul |
@@ -124,9 +124,10 @@ Détail des étapes :
    | `score_ia` | `ia_tech` | `ia_tech / nb_ent × 40` |
    | `score_data` | `analyse_donnees_int` | `analyse_donnees_int / nb_ent × 30` |
    | `pct_erp_utilisation` | `pgi_erp` | `pgi_erp / nb_ent × 100` |
-   | `digital_maturity_score` | — | somme des trois scores (valeurs nulles remplacées par 0) |
+   | `digital_maturity_score` | — | somme des trois scores ; **nulle si une composante est masquée** |
+   | `secret_statistique` | — | `1` si au moins une composante est masquée, sinon `0` |
 
-   Les lignes avec `nb_ent = 0` sont exclues ; le résultat est trié par score décroissant.
+   Les lignes avec `nb_ent = 0` sont exclues. Le résultat est trié par score décroissant, les lignes non calculables étant renvoyées en fin de classement plutôt que confondues avec de faibles scores.
 
 Le dépôt contient déjà les fichiers produits par ces trois étapes (`data/raw/` et `data/processed/`) : il n'est pas nécessaire de relancer le pipeline pour ouvrir le tableau de bord.
 

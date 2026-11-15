@@ -21,6 +21,14 @@ logging.basicConfig(
 )
 logger = logging.getLogger('LoadToSQLite')
 
+# Marqueur INSEE du secret statistique : 's' veut dire "valeur non diffusee",
+# jamais "zero". Sans na_values, la colonne arrive en TEXT dans SQLite et
+# CAST('s' AS FLOAT) y vaut 0.0 silencieusement : les scores calcules en aval
+# sont alors sous-estimes sans aucune erreur visible.
+INSEE_SECRET = ['s']
+# Colonnes d'etiquettes (texte legitime), a ne jamais filtrer.
+LABEL_COLS = {'Taille_IR', 'ACT_IR'}
+
 # Préparation de l'URL de la base de données pour SQLAlchemy
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 db_file_path = os.path.join(PROCESSED_DIR, 'maturite_digitale.db')
@@ -42,8 +50,21 @@ def load_data():
                 print(f"⏳ Chargement de {file} dans la table '{table_name}'...")
                 logger.info(f"Chargement de la table : {table_name}")
                 
-                # Lecture 
-                df = pd.read_csv(file_path, sep=';', encoding='utf-8')
+                # Lecture : on neutralise le secret statistique colonne par
+                # colonne pour que 's' devienne NULL et non 0.
+                header = pd.read_csv(file_path, sep=';', encoding='utf-8', nrows=0).columns
+                na_map = {c: INSEE_SECRET for c in header if c.strip() not in LABEL_COLS}
+                df = pd.read_csv(file_path, sep=';', encoding='utf-8', na_values=na_map)
+
+                nb_secret = int(df.isna().sum().sum())
+
+                # pandas remonte en float64 toute colonne a trous : on repasse en
+                # entier nullable quand les valeurs sont entieres, pour ne pas
+                # afficher "172345.0" dans le dashboard.
+                for col in df.columns:
+                    serie = df[col]
+                    if pd.api.types.is_float_dtype(serie) and serie.dropna().mod(1).eq(0).all():
+                        df[col] = serie.astype('Int64')
                 
                 # Nettoyage des noms de colonnes (Minuscules, pas d'espaces)
                 
@@ -53,8 +74,10 @@ def load_data():
                 # Injection dans SQLite
                 df.to_sql(table_name, con=engine, if_exists='replace', index=False)
                 
-                print(f" Table '{table_name}' créée avec {len(df)} lignes.")
-                logger.info(f"Table {table_name} créée avec {len(df)} lignes.")
+                print(f" Table '{table_name}' créée avec {len(df)} lignes "
+                      f"({nb_secret} cellules sous secret statistique -> NULL).")
+                logger.info(f"Table {table_name} créée avec {len(df)} lignes, "
+                            f"{nb_secret} cellules sous secret statistique converties en NULL.")
                 
         print(f" Chargement terminé avec succès ! Base dispo dans : data/processed/")
         

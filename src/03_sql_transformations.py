@@ -67,15 +67,25 @@ def create_maturity_score(conn):
         ROUND(i.score_ia, 2) AS score_ia,
         ROUND(d.score_data, 2) AS score_data,
         ROUND(d.pct_erp, 2) AS pct_erp_utilisation,
-        -- Calcul du score global sur 100 (arrondi à 2 décimales)
-        ROUND(COALESCE(c.score_cloud, 0) + COALESCE(i.score_ia, 0) + COALESCE(d.score_data, 0), 2) AS digital_maturity_score
+        -- Score global sur 100. Volontairement SANS COALESCE(..., 0) : quand une
+        -- composante est sous secret statistique INSEE, le total n'est pas
+        -- calculable. Il reste NULL plutôt que d'être sous-estimé et présenté
+        -- comme une mesure.
+        ROUND(c.score_cloud + i.score_ia + d.score_data, 2) AS digital_maturity_score,
+        -- Drapeau pour le dashboard : 1 = au moins une composante non diffusée.
+        CASE
+            WHEN c.score_cloud IS NULL OR i.score_ia IS NULL OR d.score_data IS NULL THEN 1
+            ELSE 0
+        END AS secret_statistique
     FROM CloudMaturity c
     JOIN IAMaturity i 
         ON c.act_ir = i.act_ir AND c.taille_ir = i.taille_ir
     JOIN DataMaturity d 
         ON c.act_ir = d.act_ir AND c.taille_ir = d.taille_ir
     WHERE c.nb_ent > 0 -- On exclut les lignes vides
-    ORDER BY digital_maturity_score DESC
+    -- Les lignes incalculables sortent en fin de classement, sans faire croire
+    -- à un score faible.
+    ORDER BY secret_statistique ASC, digital_maturity_score DESC
     """
     
     try:
