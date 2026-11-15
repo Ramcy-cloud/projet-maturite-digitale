@@ -145,7 +145,7 @@ Le dépôt contient déjà les fichiers produits par ces trois étapes (`data/ra
 
 Les workflows GitHub Actions n'embarquent aucune logique : ils appellent les workflows réutilisables de [`Ramcy-cloud/ci-templates`](https://github.com/Ramcy-cloud/ci-templates) en version `@v1`.
 
-- **`.github/workflows/ci.yml`** — sur chaque pull request et chaque push sur `main` : installe `requirements.txt`, lance `tests/verifie_pipeline.py`, puis publie les données calculées comme artefact `build-donnees`. Un second job vérifie le flux de branches : une pull request vers `main` doit venir de `dev`.
+- **`.github/workflows/ci.yml`** — sur chaque pull request et chaque push sur `main` : installe `requirements.txt`, lance `tests/verifie_pipeline.py`, puis publie les données calculées comme artefact `build-donnees`. Le job de verrou du flux de branches (une pull request vers `main` doit venir de `dev`) est écrit mais commenté : le workflow réutilisable correspondant n'est pas encore inclus dans le tag `v1` de `ci-templates`.
 - **`.github/workflows/cd.yml`** — livraison continue : déclenchée par une CI verte sur `main`, elle republie les artefacts en paquet `livraison-<sha>` via l'environnement GitHub `production`. Celui-ci exige une validation manuelle (`Actions` → exécution `CD` → `Review deployments` → `Approve`) : **rien n'est livré automatiquement**.
 
 L'étape `01_ingestion.py` n'est pas rejouée en CI (elle téléchargerait l'archive INSEE) : les CSV bruts sont versionnés dans `data/raw/`.
