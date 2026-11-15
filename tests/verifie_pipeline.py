@@ -142,9 +142,15 @@ def main():
                 "WHERE secteur = ? AND taille = ?",
                 (secteur, taille),
             ).fetchone()
+            # Si la ligne existe mais que le score est NULL, fetchone() renvoie
+            # (None,) : il faut tester la valeur et pas seulement le tuple, sinon
+            # le scénario « une référence passe sous secret statistique » lève un
+            # TypeError au lieu d'être signalé comme un échec lisible.
+            valeur = obtenu[0] if obtenu else None
             verifie(
-                obtenu is not None and abs(obtenu[0] - attendu) < 0.01,
-                f"{secteur}/{taille} = {attendu} (obtenu {obtenu[0] if obtenu else 'absent'})",
+                valeur is not None and abs(valeur - attendu) < 0.01,
+                f"{secteur}/{taille} = {attendu} "
+                f"(obtenu {valeur if valeur is not None else 'NULL ou ligne absente'})",
             )
 
         print("\n7. Classement : les lignes non calculables sortent en dernier")
