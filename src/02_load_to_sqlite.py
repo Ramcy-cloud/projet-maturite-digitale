@@ -2,6 +2,7 @@ import pandas as pd
 from sqlalchemy import create_engine
 import logging
 import os
+from pathlib import PurePath
 
 # 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -17,7 +18,11 @@ logging.basicConfig(
     filename=os.path.join(LOG_DIR, 'pipeline.log'),
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    filemode='a'
+    filemode='a',
+    # Sans cela le journal est ecrit dans l'encodage de la locale (cp1252 sous
+    # Windows) : un run local puis un run en CI produisent un fichier a
+    # encodage mixte, impossible a relire d'un bloc.
+    encoding='utf-8'
 )
 logger = logging.getLogger('LoadToSQLite')
 
@@ -32,8 +37,10 @@ LABEL_COLS = {'Taille_IR', 'ACT_IR'}
 # Préparation de l'URL de la base de données pour SQLAlchemy
 os.makedirs(PROCESSED_DIR, exist_ok=True)
 db_file_path = os.path.join(PROCESSED_DIR, 'maturite_digitale.db')
-# SQLAlchemy a besoin de slashes forward (/)
-DB_URL = f"sqlite:///{db_file_path.replace('//', '/').replace('\\', '/')}"
+# SQLAlchemy attend des barres obliques, y compris sous Windows. On passe
+# par PurePath plutot que par une f-string contenant une barre oblique
+# inverse : celle-ci n'est acceptee qu'a partir de Python 3.12.
+DB_URL = 'sqlite:///' + PurePath(db_file_path).as_posix()
 
 def load_data():
     logger.info("Début du chargement en base SQLite.")
@@ -57,6 +64,26 @@ def load_data():
                 df = pd.read_csv(file_path, sep=';', encoding='utf-8', na_values=na_map)
 
                 nb_secret = int(df.isna().sum().sum())
+
+                # Filet de securite : toute autre valeur non numerique (l'INSEE
+                # utilise aussi 'nd', '///', 'nr'...) ferait revenir le bug
+                # d'origine, colonne en TEXT et CAST a 0.0. Mieux vaut un
+                # chargement qui echoue qu'un score fausse en silence.
+                for col in df.columns:
+                    if col.strip() in LABEL_COLS:
+                        continue
+                    numerique = pd.to_numeric(df[col], errors='coerce')
+                    inattendues = sorted(
+                        set(df[col][numerique.isna() & df[col].notna()].astype(str))
+                    )
+                    if inattendues:
+                        raise ValueError(
+                            f"{file} / colonne {col} : valeurs non numeriques "
+                            f"inattendues {inattendues}. S'il s'agit d'un nouveau "
+                            f"marqueur INSEE, l'ajouter a INSEE_SECRET ; sinon "
+                            f"corriger la source."
+                        )
+                    df[col] = numerique
 
                 # pandas remonte en float64 toute colonne a trous : on repasse en
                 # entier nullable quand les valeurs sont entieres, pour ne pas

@@ -21,7 +21,11 @@ logging.basicConfig(
     filename=os.path.join(LOG_DIR, 'pipeline.log'),
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    filemode='a'
+    filemode='a',
+    # Sans cela le journal est ecrit dans l'encodage de la locale (cp1252 sous
+    # Windows) : un run local puis un run en CI produisent un fichier a
+    # encodage mixte, impossible a relire d'un bloc.
+    encoding='utf-8'
 )
 logger = logging.getLogger('IngestionAutomatique')
 

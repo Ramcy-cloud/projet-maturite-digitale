@@ -19,27 +19,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  # TODO : verrou du flux de branches (une pull request vers main doit venir de
-  # dev). Le workflow réutilisable « verifie-base-pr.yml » est présent sur la
-  # branche main de ci-templates mais PAS au tag v1 : le tag n'a pas été déplacé
-  # après la fusion. Réactiver ce job tel quel dès que v1 l'inclut.
-  #
-  # flux-de-branches:
-  #   name: Flux de branches
-  #   uses: Ramcy-cloud/ci-templates/.github/workflows/verifie-base-pr.yml@v1
-  #   with:
-  #     branche-protegee: main
-  #     sources-autorisees: dev
+  # Verrou du flux de branches : une pull request vers main doit venir de dev.
+  # Sans effet hors pull request.
+  flux-de-branches:
+    name: Flux de branches
+    uses: Ramcy-cloud/ci-templates/.github/workflows/verifie-base-pr.yml@v1
+    with:
+      branche-protegee: main
+      sources-autorisees: dev
 
   pipeline:
     name: Pipeline ETL
     uses: Ramcy-cloud/ci-templates/.github/workflows/python-ci.yml@v1
     with:
       working-directory: .
-      # 3.12 minimum : src/02_load_to_sqlite.py contient une barre oblique
-      # inverse dans une f-string, refusée par Python 3.11 (SyntaxError).
-      # C'est la contrainte déjà documentée dans le README.
-      python-version: "3.12"
+      python-version: "3.11"
       requirements-file: requirements.txt
       # Rejoue les étapes 02 et 03 sur une copie des données brutes et contrôle
       # les invariants du score. Garde-fou principal : le marqueur INSEE de

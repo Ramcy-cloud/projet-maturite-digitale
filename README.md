@@ -63,7 +63,7 @@ Quelques valeurs tirées de ce fichier :
 
 ### Lexique des codes de taille (INSEE)
 
-D'après le dictionnaire des variables fourni (`data/processed/metadonnees_irecotic23.csv`) :
+D'après le dictionnaire des variables fourni (`data/reference/metadonnees_irecotic23.csv`) :
 
 | Code | Signification |
 |---|---|
@@ -83,14 +83,12 @@ Les codes de secteur (`S_C`, `S_TIC`, `S_M`…) et leurs libellés officiels son
 
 | Rôle | Outil |
 |---|---|
-| Langage | Python **3.12 ou plus récent** (voir ci-dessous) |
+| Langage | Python **3.11 ou plus récent** (version vérifiée par la CI) |
 | Téléchargement | `requests` |
 | Manipulation de données | `pandas` |
 | Base de données | SQLite (via `sqlite3`, inclus dans Python, et `SQLAlchemy`) |
 | Exploration | Jupyter Notebook |
 | Visualisation | Power BI Desktop |
-
-`src/02_load_to_sqlite.py` contient une barre oblique inverse dans une f-string, ce qui n'est accepté qu'à partir de Python 3.12.
 
 ### Installation
 
@@ -120,7 +118,7 @@ Sous Windows, les scripts affichent des emojis : si la console les refuse (`Unic
 python tests/verifie_pipeline.py
 ```
 
-Le script rejoue les étapes 02 et 03 sur une **copie** des données brutes (jamais sur les fichiers versionnés) et contrôle 15 invariants : aucune mesure chargée en texte, les 4 lignes sous secret statistique restent NULL et ne valent jamais 0, les 61 autres gardent un score complet, le score global égale la somme des trois sous-scores et reste dans `[0, 100]`, deux valeurs de référence, le classement qui renvoie les lignes non calculables en dernier, et la concordance entre `entreprise_score_final.csv` versionné et le rejeu. C'est ce script que lance la CI.
+Le script rejoue les étapes 02 et 03 sur une **copie** des données brutes (jamais sur les fichiers versionnés) et contrôle 22 invariants : aucune mesure chargée en texte, les 4 lignes sous secret statistique restent NULL et ne valent jamais 0, les 61 autres gardent un score complet, le score global égale la somme des trois sous-scores et reste dans `[0, 100]`, deux valeurs de référence, le classement qui renvoie les lignes non calculables en dernier, les trois tables brutes qui gardent leurs 65 lignes avec le même `nb_ent`, la concordance entre `entreprise_score_final.csv` versionné et le rejeu, et enfin le refus d'un marqueur INSEE inconnu : la dernière vérification remplace `s` par `nd` dans une copie et exige que le chargement **échoue** au lieu de produire un 0 silencieux. C'est ce script que lance la CI.
 
 Détail des étapes :
 
@@ -145,18 +143,18 @@ Le dépôt contient déjà les fichiers produits par ces trois étapes (`data/ra
 
 Les workflows GitHub Actions n'embarquent aucune logique : ils appellent les workflows réutilisables de [`Ramcy-cloud/ci-templates`](https://github.com/Ramcy-cloud/ci-templates) en version `@v1`.
 
-- **`.github/workflows/ci.yml`** — sur chaque pull request et chaque push sur `main` : installe `requirements.txt`, lance `tests/verifie_pipeline.py`, puis publie les données calculées comme artefact `build-donnees`. Le job de verrou du flux de branches (une pull request vers `main` doit venir de `dev`) est écrit mais commenté : le workflow réutilisable correspondant n'est pas encore inclus dans le tag `v1` de `ci-templates`.
+- **`.github/workflows/ci.yml`** — sur chaque pull request et chaque push sur `main` : installe `requirements.txt`, lance `tests/verifie_pipeline.py`, puis publie les données calculées comme artefact `build-donnees`. Un second job verrouille le flux de branches : une pull request vers `main` doit venir de `dev`, sinon la CI échoue.
 - **`.github/workflows/cd.yml`** — livraison continue : déclenchée par une CI verte sur `main`, elle republie les artefacts en paquet `livraison-<sha>` via l'environnement GitHub `production`. Celui-ci exige une validation manuelle (`Actions` → exécution `CD` → `Review deployments` → `Approve`) : **rien n'est livré automatiquement**.
 
 L'étape `01_ingestion.py` n'est pas rejouée en CI (elle téléchargerait l'archive INSEE) : les CSV bruts sont versionnés dans `data/raw/`.
 
 ### Tableau de bord
 
-Ouvrir `visualisation.pbix` avec **Power BI Desktop** (Windows). Les visuels s'appuient sur une table nommée `entreprise_score_final`, avec des colonnes renommées (« Performance Cloud », « Performance Data », « Performance IA », « Secteur d'activité », « Taille de l'Entreprise ») ; les libellés officiels viennent du dictionnaire `metadonnees_irecotic23.csv`. Si la source de données n'est pas trouvée à l'ouverture, il faut la repointer vers le fichier local.
+Ouvrir `visualisation.pbix` avec **Power BI Desktop** (Windows). Les visuels s'appuient sur une table nommée `entreprise_score_final`, avec des colonnes renommées (« Performance Cloud », « Performance Data », « Performance IA », « Secteur d'activité », « Taille de l'Entreprise ») ; les libellés officiels viennent du dictionnaire `data/reference/metadonnees_irecotic23.csv`. Si la source de données n'est pas trouvée à l'ouverture, il faut la repointer vers le fichier local.
 
 ### Notebook
 
-`notebooks/04_EDA_and_Insights.ipynb` charge les trois CSV bruts avec `pandas` et affiche leurs premières lignes. L'analyse exploratoire (EDA, *Exploratory Data Analysis*) n'y est pas encore développée.
+`notebooks/04_EDA_and_Insights.ipynb` charge les trois CSV bruts avec `pandas` et affiche leurs premières lignes. Il applique la même règle que `src/02_load_to_sqlite.py` sur le secret statistique, et trouve la racine du dépôt tout seul : il fonctionne quel que soit le dossier de travail du noyau. Il est **versionné sans ses sorties** — les exécuter demande Jupyter, qui ne fait pas partie de `requirements.txt`. L'analyse exploratoire (EDA, *Exploratory Data Analysis*) n'y est pas encore développée.
 
 ### Structure du projet
 
@@ -170,10 +168,11 @@ projet-maturite-digitale/
 │   │   ├── insee_data.csv            #   table 3 : usage et analyse des données
 │   │   ├── insee_cloud.csv           #   table 4 : cloud
 │   │   └── insee_ia.csv              #   table 5 : intelligence artificielle
-│   └── processed/
+│   ├── reference/
+│   │   └── metadonnees_irecotic23.csv # Dictionnaire des variables et des codes INSEE
+│   └── processed/                    # Entièrement régénérable par le pipeline
 │       ├── maturite_digitale.db      # Base SQLite (tables brutes + entreprise_score)
-│       ├── entreprise_score_final.csv
-│       └── metadonnees_irecotic23.csv # Dictionnaire des variables et des codes INSEE
+│       └── entreprise_score_final.csv
 ├── notebooks/
 │   └── 04_EDA_and_Insights.ipynb
 ├── src/
