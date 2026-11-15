@@ -17,7 +17,11 @@ logging.basicConfig(
     filename=os.path.join(LOG_DIR, 'pipeline.log'),
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    filemode='a'
+    filemode='a',
+    # Sans cela le journal est ecrit dans l'encodage de la locale (cp1252 sous
+    # Windows) : un run local puis un run en CI produisent un fichier a
+    # encodage mixte, impossible a relire d'un bloc.
+    encoding='utf-8'
 )
 logger = logging.getLogger('SQLTransform')
 
@@ -101,6 +105,15 @@ if __name__ == '__main__':
     print("--- Lancement de la Modélisation SQL ---")
     start_time = time.time()
     
+    # sqlite3.connect cree un fichier vide si la base est absente : le script
+    # echouerait ensuite sur « no such table », en laissant derriere lui un .db
+    # vide qui ressemble a une base valide.
+    if not os.path.exists(DB_PATH):
+        raise SystemExit(
+            f"Base introuvable : {DB_PATH}. "
+            "Lancer d'abord src/02_load_to_sqlite.py."
+        )
+
     print("🗄️ Connexion à la base de données...")
     conn = sqlite3.connect(DB_PATH)
     

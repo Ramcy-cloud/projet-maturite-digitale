@@ -10,6 +10,7 @@ Usage : python tests/verifie_pipeline.py
 
 import csv
 import os
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -37,28 +38,38 @@ def verifie(condition, message):
         erreurs.append(message)
 
 
-def rejoue_pipeline(travail):
-    """Copie src/ et data/raw/ dans un dossier temporaire et y relance 02 puis 03."""
+def prepare_copie(travail):
+    """Copie src/ et data/raw/ dans un dossier temporaire."""
     shutil.copytree(os.path.join(RACINE, "src"), os.path.join(travail, "src"))
     shutil.copytree(
         os.path.join(RACINE, "data", "raw"), os.path.join(travail, "data", "raw")
     )
+
+
+def lance(script, travail):
+    """Lance un script du pipeline dans la copie et renvoie le resultat brut."""
     env = dict(os.environ)
     # Les scripts impriment des emojis : sans cela, la console Windows (cp1252)
-    # fait échouer le pipeline sur un UnicodeEncodeError.
+    # fait echouer le pipeline sur un UnicodeEncodeError.
     env["PYTHONIOENCODING"] = "utf-8"
+    return subprocess.run(
+        [sys.executable, os.path.join(travail, "src", script)],
+        capture_output=True,
+        text=True,
+        # Les scripts écrivent de l'UTF-8 : sans le préciser, la sortie est
+        # décodée avec l'encodage local (cp1252 sous Windows) et les emojis
+        # font échouer la lecture du flux.
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+    )
+
+
+def rejoue_pipeline(travail):
+    """Relance 02 puis 03 sur une copie, en exigeant leur succes."""
+    prepare_copie(travail)
     for script in ("02_load_to_sqlite.py", "03_sql_transformations.py"):
-        resultat = subprocess.run(
-            [sys.executable, os.path.join(travail, "src", script)],
-            capture_output=True,
-            text=True,
-            # Les scripts écrivent de l'UTF-8 : sans le préciser, la sortie est
-            # décodée avec l'encodage local (cp1252 sous Windows) et les emojis
-            # font échouer la lecture du flux.
-            encoding="utf-8",
-            errors="replace",
-            env=env,
-        )
+        resultat = lance(script, travail)
         if resultat.returncode != 0:
             print(resultat.stdout)
             print(resultat.stderr, file=sys.stderr)
@@ -142,9 +153,15 @@ def main():
                 "WHERE secteur = ? AND taille = ?",
                 (secteur, taille),
             ).fetchone()
+            # Si la ligne existe mais que le score est NULL, fetchone() renvoie
+            # (None,) : il faut tester la valeur et pas seulement le tuple, sinon
+            # le scénario « une référence passe sous secret statistique » lève un
+            # TypeError au lieu d'être signalé comme un échec lisible.
+            valeur = obtenu[0] if obtenu else None
             verifie(
-                obtenu is not None and abs(obtenu[0] - attendu) < 0.01,
-                f"{secteur}/{taille} = {attendu} (obtenu {obtenu[0] if obtenu else 'absent'})",
+                valeur is not None and abs(valeur - attendu) < 0.01,
+                f"{secteur}/{taille} = {attendu} "
+                f"(obtenu {valeur if valeur is not None else 'NULL ou ligne absente'})",
             )
 
         print("\n7. Classement : les lignes non calculables sortent en dernier")
@@ -156,9 +173,27 @@ def main():
             "aucune ligne masquée intercalée dans le classement",
         )
 
+        print("\n8. Dénominateurs cohérents entre les trois tables brutes")
+        for table in ("insee_cloud", "insee_data", "insee_ia"):
+            total = conn.execute(f"SELECT COUNT(*) FROM {table}").fetchone()[0]
+            verifie(
+                total == NB_LIGNES_ATTENDUES,
+                f"{table} : {total} lignes avant jointure (attendu {NB_LIGNES_ATTENDUES})",
+            )
+        # Chaque CTE de 03 divise par SON propre nb_ent, alors que le WHERE ne
+        # contrôle que celui de insee_cloud : si les trois fichiers divergeaient,
+        # les sous-scores ne seraient plus comparables entre eux.
+        divergences = conn.execute(
+            "SELECT COUNT(*) FROM insee_cloud c "
+            "JOIN insee_ia i USING (act_ir, taille_ir) "
+            "JOIN insee_data d USING (act_ir, taille_ir) "
+            "WHERE c.nb_ent IS NOT i.nb_ent OR c.nb_ent IS NOT d.nb_ent"
+        ).fetchone()[0]
+        verifie(divergences == 0, f"nb_ent identique dans les trois tables ({divergences} écart(s))")
+
         conn.close()
 
-        print("\n8. Artefacts versionnés à jour par rapport au code")
+        print("\n9. Artefacts versionnés à jour par rapport au code")
         attendu = lit_csv(os.path.join(travail, "data", "processed", "entreprise_score_final.csv"))
         livre = lit_csv(os.path.join(RACINE, "data", "processed", "entreprise_score_final.csv"))
         verifie(set(attendu) == set(livre), "mêmes couples secteur x taille")
@@ -170,6 +205,28 @@ def main():
             if livre[cle][col] != attendu[cle][col]
         ]
         verifie(not ecarts, f"entreprise_score_final.csv identique au rejeu {ecarts[:5] or ''}")
+
+    print("\n10. Un marqueur INSEE inconnu fait échouer le chargement")
+    with tempfile.TemporaryDirectory(prefix="verif-marqueur-") as bac:
+        prepare_copie(bac)
+        cible = os.path.join(bac, "data", "raw", "insee_ia.csv")
+        with open(cible, encoding="utf-8") as f:
+            texte = f.read()
+        # Remplace le « s » isolé par « nd », autre marqueur INSEE, sans toucher
+        # aux étiquettes (Ens, S_DE, po1...).
+        altere, remplaces = re.subn(r"(?<=;)s(?=[;\r\n]|$)", "nd", texte, flags=re.M)
+        with open(cible, "w", encoding="utf-8", newline="") as f:
+            f.write(altere)
+        verifie(remplaces > 0, f"{remplaces} marqueur(s) remplacé(s) par « nd » dans la copie")
+        resultat = lance("02_load_to_sqlite.py", bac)
+        verifie(
+            resultat.returncode != 0,
+            "le chargement refuse « nd » au lieu de le charger comme un 0 silencieux",
+        )
+        verifie(
+            "nd" in (resultat.stdout + resultat.stderr),
+            "le message d'erreur nomme la valeur fautive",
+        )
 
     print()
     if erreurs:
