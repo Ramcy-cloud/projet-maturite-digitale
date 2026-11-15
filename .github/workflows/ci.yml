@@ -1,0 +1,49 @@
+# CI : vérifie chaque pull request et chaque push sur main.
+# Les étapes sont définies une seule fois dans Ramcy-cloud/ci-templates
+# (workflows réutilisables) : https://github.com/Ramcy-cloud/ci-templates
+#
+# Projet Python sans frontend Node et sans Dockerfile : un seul job de
+# vérification, et la livraison se fait sous forme d'artefacts (voir cd.yml).
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # Verrou du flux de branches : une pull request vers main doit venir de dev.
+  # Sans effet hors pull request.
+  flux-de-branches:
+    name: Flux de branches
+    uses: Ramcy-cloud/ci-templates/.github/workflows/verifie-base-pr.yml@v1
+    with:
+      branche-protegee: main
+      sources-autorisees: dev
+
+  pipeline:
+    name: Pipeline ETL
+    uses: Ramcy-cloud/ci-templates/.github/workflows/python-ci.yml@v1
+    with:
+      working-directory: .
+      python-version: "3.11"
+      requirements-file: requirements.txt
+      # Rejoue les étapes 02 et 03 sur une copie des données brutes et contrôle
+      # les invariants du score. Garde-fou principal : le marqueur INSEE de
+      # secret statistique « s » doit rester NULL et ne jamais valoir 0.
+      # L'étape 01 n'est pas rejouée : elle téléchargerait l'archive INSEE, et
+      # les CSV bruts sont versionnés.
+      test-command: python tests/verifie_pipeline.py
+      # Les données calculées sont le livrable du projet : la CI les publie pour
+      # que cd.yml puisse les livrer après validation manuelle.
+      artifact-name: build-donnees
+      artifact-path: |
+        data/processed/entreprise_score_final.csv
+        data/processed/maturite_digitale.db
