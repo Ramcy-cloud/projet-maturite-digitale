@@ -1,5 +1,5 @@
 import pandas as pd
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 import logging
 import os
 from pathlib import PurePath
@@ -33,6 +33,10 @@ logger = logging.getLogger('LoadToSQLite')
 INSEE_SECRET = ['s']
 # Colonnes d'etiquettes (texte legitime), a ne jamais filtrer.
 LABEL_COLS = {'Taille_IR', 'ACT_IR'}
+# Table calculee par 03 : elle doit disparaitre des que les tables brutes
+# changent, sinon elle survit a un echec de chargement et fait croire que le
+# livrable correspond aux donnees presentes.
+TABLE_CALCULEE = 'entreprise_score'
 
 # Préparation de l'URL de la base de données pour SQLAlchemy
 os.makedirs(PROCESSED_DIR, exist_ok=True)
@@ -42,72 +46,97 @@ db_file_path = os.path.join(PROCESSED_DIR, 'maturite_digitale.db')
 # inverse : celle-ci n'est acceptee qu'a partir de Python 3.12.
 DB_URL = 'sqlite:///' + PurePath(db_file_path).as_posix()
 
+
+def lit_et_valide(file_path, file):
+    """Lit un CSV INSEE et refuse tout ce qui n'est pas une mesure numerique.
+
+    Renvoie le DataFrame pret a ecrire et le nombre de cellules reellement
+    masquees par le secret statistique.
+    """
+    # On neutralise le secret statistique colonne par colonne pour que 's'
+    # devienne NULL et non 0, sans toucher aux etiquettes.
+    header = pd.read_csv(file_path, sep=';', encoding='utf-8', nrows=0).columns
+    mesures = [c for c in header if c.strip() not in LABEL_COLS]
+    na_map = {c: INSEE_SECRET for c in mesures}
+
+    # Premiere lecture en texte : elle seule permet de distinguer un marqueur
+    # de secret statistique d'un champ vide ou d'une valeur aberrante.
+    brut = pd.read_csv(file_path, sep=';', encoding='utf-8', dtype=str,
+                       keep_default_na=False, na_values=[])
+    nb_secret = 0
+    for col in mesures:
+        valeurs = brut[col].str.strip()
+        nb_secret += int(valeurs.isin(INSEE_SECRET).sum())
+        # Filet de securite : tout le reste doit etre un entier. Un autre
+        # marqueur INSEE ('nd', '///', 'nr'...) ou un champ vide ferait revenir
+        # le bug d'origine, colonne en TEXT et CAST a 0.0 ; mieux vaut un
+        # chargement qui echoue qu'un score fausse en silence.
+        suspectes = valeurs[~valeurs.isin(INSEE_SECRET)]
+        inattendues = sorted(set(suspectes[pd.to_numeric(suspectes, errors='coerce').isna()]))
+        if inattendues:
+            raise ValueError(
+                f"{file} / colonne {col} : valeurs non numeriques inattendues "
+                f"{inattendues}. S'il s'agit d'un nouveau marqueur INSEE de "
+                f"secret statistique, l'ajouter a INSEE_SECRET ; sinon corriger "
+                f"la source."
+            )
+
+    df = pd.read_csv(file_path, sep=';', encoding='utf-8', na_values=na_map)
+
+    # pandas remonte en float64 toute colonne a trous : on repasse en entier
+    # nullable quand les valeurs sont entieres, pour ne pas afficher
+    # "172345.0" dans le dashboard.
+    for col in df.columns:
+        serie = df[col]
+        if pd.api.types.is_float_dtype(serie) and serie.dropna().mod(1).eq(0).all():
+            df[col] = serie.astype('Int64')
+
+    # Nettoyage des noms de colonnes (Minuscules, pas d'espaces)
+    df.columns = df.columns.str.strip().str.lower()
+    df.columns = df.columns.str.replace(' ', '_').str.replace("'", "_").str.replace("-", "_")
+    return df, nb_secret
+
+
 def load_data():
     logger.info("Début du chargement en base SQLite.")
     print("🗄️ Connexion à la base de données...")
     engine = create_engine(DB_URL)
-    
+
     try:
-        # On parcourt tous les fichiers du dossier raw
-        for file in os.listdir(RAW_DIR):
+        # Phase 1 : on lit et on valide TOUT avant d'ecrire quoi que ce soit.
+        # Sans cela, un echec sur le 3e fichier laisse en base un melange de
+        # tables rechargees et de tables du millesime precedent, et 03 produit
+        # ensuite un livrable plausible mais faux, en sortant avec un code 0.
+        a_ecrire = []
+        for file in sorted(os.listdir(RAW_DIR)):
             if file.endswith('.csv'):
-                table_name = file.replace('.csv', '')
+                table_name = file[:-len('.csv')]
                 file_path = os.path.join(RAW_DIR, file)
-                
-                print(f"⏳ Chargement de {file} dans la table '{table_name}'...")
-                logger.info(f"Chargement de la table : {table_name}")
-                
-                # Lecture : on neutralise le secret statistique colonne par
-                # colonne pour que 's' devienne NULL et non 0.
-                header = pd.read_csv(file_path, sep=';', encoding='utf-8', nrows=0).columns
-                na_map = {c: INSEE_SECRET for c in header if c.strip() not in LABEL_COLS}
-                df = pd.read_csv(file_path, sep=';', encoding='utf-8', na_values=na_map)
+                print(f"🔍 Lecture et contrôle de {file}...")
+                logger.info(f"Lecture et contrôle de la table : {table_name}")
+                df, nb_secret = lit_et_valide(file_path, file)
+                a_ecrire.append((table_name, df, nb_secret))
 
-                nb_secret = int(df.isna().sum().sum())
+        if not a_ecrire:
+            raise FileNotFoundError(f"Aucun CSV à charger dans {RAW_DIR}.")
 
-                # Filet de securite : toute autre valeur non numerique (l'INSEE
-                # utilise aussi 'nd', '///', 'nr'...) ferait revenir le bug
-                # d'origine, colonne en TEXT et CAST a 0.0. Mieux vaut un
-                # chargement qui echoue qu'un score fausse en silence.
-                for col in df.columns:
-                    if col.strip() in LABEL_COLS:
-                        continue
-                    numerique = pd.to_numeric(df[col], errors='coerce')
-                    inattendues = sorted(
-                        set(df[col][numerique.isna() & df[col].notna()].astype(str))
-                    )
-                    if inattendues:
-                        raise ValueError(
-                            f"{file} / colonne {col} : valeurs non numeriques "
-                            f"inattendues {inattendues}. S'il s'agit d'un nouveau "
-                            f"marqueur INSEE, l'ajouter a INSEE_SECRET ; sinon "
-                            f"corriger la source."
-                        )
-                    df[col] = numerique
-
-                # pandas remonte en float64 toute colonne a trous : on repasse en
-                # entier nullable quand les valeurs sont entieres, pour ne pas
-                # afficher "172345.0" dans le dashboard.
-                for col in df.columns:
-                    serie = df[col]
-                    if pd.api.types.is_float_dtype(serie) and serie.dropna().mod(1).eq(0).all():
-                        df[col] = serie.astype('Int64')
-                
-                # Nettoyage des noms de colonnes (Minuscules, pas d'espaces)
-                
-                df.columns = df.columns.str.strip().str.lower()
-                df.columns = df.columns.str.replace(' ', '_').str.replace("'", "_").str.replace("-", "_")
-                
-                # Injection dans SQLite
-                df.to_sql(table_name, con=engine, if_exists='replace', index=False)
-                
+        # Phase 2 : ecriture, dans UNE seule transaction. Soit les trois tables
+        # sont remplacees, soit aucune ne l'est : une base a moitie rechargee
+        # ferait produire a 03 un livrable plausible mais faux.
+        # La table calculee par 03 est supprimee au passage, puisqu'elle ne
+        # decrit plus les tables brutes qu'on remplace.
+        with engine.begin() as connexion:
+            connexion.execute(text(f'DROP TABLE IF EXISTS "{TABLE_CALCULEE}"'))
+            for table_name, df, nb_secret in a_ecrire:
+                print(f"⏳ Chargement de {table_name}...")
+                df.to_sql(table_name, con=connexion, if_exists='replace', index=False)
                 print(f" Table '{table_name}' créée avec {len(df)} lignes "
                       f"({nb_secret} cellules sous secret statistique -> NULL).")
                 logger.info(f"Table {table_name} créée avec {len(df)} lignes, "
                             f"{nb_secret} cellules sous secret statistique converties en NULL.")
-                
-        print(f" Chargement terminé avec succès ! Base dispo dans : data/processed/")
-        
+
+        print(" Chargement terminé avec succès ! Base dispo dans : data/processed/")
+
     except Exception as e:
         logger.error(f"Erreur lors du chargement : {e}")
         print(f" ERREUR !!! : Erreur lors du chargement {e}")

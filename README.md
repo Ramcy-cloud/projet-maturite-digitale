@@ -44,7 +44,7 @@ Ces pondérations (30 / 40 / 30) sont un choix du projet, pas une norme de l'INS
 
 ## Résultat / ce qu'on obtient
 
-- Un tableau de **65 lignes** (13 secteurs, dont « Ensemble », × 5 catégories de taille, dont « Ensemble ») avec, pour chacune : le nombre d'entreprises, les trois sous-scores, la part d'entreprises équipées d'un ERP (logiciel de gestion intégré qui centralise comptabilité, stocks, achats…), le **score global sur 100** et un indicateur `secret_statistique` (`1` si le score n'est pas calculable, voir plus bas).
+- Un tableau de **65 lignes** (13 modalités de secteur × 5 catégories de taille) avec, pour chacune : le nombre d'entreprises, les trois sous-scores, la part d'entreprises équipées d'un ERP (logiciel de gestion intégré qui centralise comptabilité, stocks, achats…), le **score global sur 100**, un indicateur `secret_statistique` (`1` si le score n'est pas calculable) et deux indicateurs de structure, `est_agregat` et `est_sous_ensemble`, **à lire impérativement avant toute addition ou moyenne** (voir ci-dessous).
 - Ce tableau est disponible dans `data/processed/entreprise_score_final.csv` et dans la table `entreprise_score` de la base SQLite.
 
 Quelques valeurs tirées de ce fichier :
@@ -53,6 +53,32 @@ Quelques valeurs tirées de ce fichier :
 |---|---|---|
 | Activités spécialisées, scientifiques et techniques | 250 personnes ou plus | 61,9 / 100 (le plus élevé) |
 | Ensemble des secteurs | Ensemble des tailles | 18,99 / 100 |
+
+### ⚠️ Les 65 lignes ne sont pas 65 observations
+
+C'est le piège principal de ces données, et il est facile de s'y perdre : **certaines lignes sont des totaux d'autres lignes.** Les additionner revient à compter deux fois les mêmes entreprises.
+
+Les 13 modalités de secteur se décomposent en :
+
+| Nature | Nombre | Détail |
+|---|---|---|
+| Secteurs réellement disjoints | **11** | industrie, construction, commerce de gros, commerce de détail, transports, hébergement-restauration, information-communication, immobilier, activités spécialisées, services administratifs, énergie-eau-déchets |
+| Total | 1 | `Ens` (« Ensemble ») = la somme des 11 |
+| **Sous-ensemble** | 1 | `S_TIC`, libellé par l'INSEE « **dont** secteur producteur de TIC » : ses 7 501 entreprises sont **déjà comptées** dans l'industrie et dans l'information-communication |
+
+Et les 5 tailles sont 4 tranches réelles (`po1` à `po4`) plus leur total `Ens`. Pour chaque secteur, la ligne `Ens` est bien la somme de ses `po1..po4` (vérifié ligne à ligne).
+
+Au total, **17 des 65 lignes sont des agrégats** et 5 concernent le sous-ensemble `S_TIC`. Il ne reste que **44 cellules disjointes** (11 secteurs × 4 tailles). La différence n'est pas théorique :
+
+```
+somme de total_entreprises sur les 65 lignes        : 704 384
+somme sur les 44 cellules disjointes                : 172 348
+population réelle (ligne Ens / Ens)                 : 172 345   (écart de 3 : arrondi aléatoire INSEE)
+```
+
+D'où les deux colonnes `est_agregat` et `est_sous_ensemble` : **filtrer sur `est_agregat = 0` et `est_sous_ensemble = 0`** avant toute somme, moyenne ou comptage. Les lignes agrégées restent dans le tableau parce qu'elles sont utiles telles quelles — la ligne `Ens`/`Ens` est le chiffre France — mais elles ne doivent jamais entrer dans un calcul avec les autres.
+
+Deuxième précaution, indépendante de la première : **les sous-scores sont des taux, pas des effectifs.** Additionner `score_cloud` sur plusieurs lignes additionne des pourcentages calculés sur des populations différentes ; le résultat ne veut rien dire, même en écartant les agrégats. Pour agréger correctement, il faut repartir des effectifs bruts des tables `insee_*`.
 
 > Secret statistique : certaines cases de l'INSEE sont masquées (valeur `s`) quand l'effectif est trop faible pour être publié. Elles sont chargées comme **valeurs nulles**, jamais comme des 0. Pour 4 lignes sur 65 (énergie / eau-déchets `S_DE` et immobilier `S_L`, tailles `po2` et `po4`), l'indicateur IA est masqué : `score_ia` et `digital_maturity_score` y sont donc vides et la colonne `secret_statistique` vaut `1`. Mieux vaut une case vide qu'un score sous-estimé présenté comme une mesure.
 
@@ -118,15 +144,15 @@ Sous Windows, les scripts affichent des emojis : si la console les refuse (`Unic
 python tests/verifie_pipeline.py
 ```
 
-Le script rejoue les étapes 02 et 03 sur une **copie** des données brutes (jamais sur les fichiers versionnés) et contrôle 22 invariants : aucune mesure chargée en texte, les 4 lignes sous secret statistique restent NULL et ne valent jamais 0, les 61 autres gardent un score complet, le score global égale la somme des trois sous-scores et reste dans `[0, 100]`, deux valeurs de référence, le classement qui renvoie les lignes non calculables en dernier, les trois tables brutes qui gardent leurs 65 lignes avec le même `nb_ent`, la concordance entre `entreprise_score_final.csv` versionné et le rejeu, et enfin le refus d'un marqueur INSEE inconnu : la dernière vérification remplace `s` par `nd` dans une copie et exige que le chargement **échoue** au lieu de produire un 0 silencieux. C'est ce script que lance la CI.
+Le script rejoue les étapes 02 et 03 sur une **copie** des données brutes (jamais sur les fichiers versionnés) et contrôle 33 invariants : aucune mesure chargée en texte, les 4 lignes sous secret statistique restent NULL et ne valent jamais 0, les 61 autres gardent un score complet, le score global égale la somme des trois sous-scores et reste dans `[0, 100]`, deux valeurs de référence, le classement qui renvoie les lignes non calculables en dernier, les trois tables brutes qui gardent leurs 65 lignes avec le même `nb_ent`, la cohérence des drapeaux `est_agregat` / `est_sous_ensemble` (une fois les agrégats écartés, les lignes restantes totalisent bien la population réelle), la concordance entre `entreprise_score_final.csv` **et la base** versionnés et le rejeu, et enfin le refus d'un marqueur INSEE inconnu : la dernière vérification remplace `s` par `nd` dans une copie, exige que le chargement **échoue** au lieu de produire un 0 silencieux, et vérifie qu'il n'a laissé derrière lui aucune table à moitié rechargée. C'est ce script que lance la CI.
 
 Détail des étapes :
 
 1. **`01_ingestion.py`** — télécharge `https://www.insee.fr/fr/statistiques/fichier/7729450/irecotic23_csv.zip` (délai maximal 20 s) et extrait les fichiers dont le nom contient `table3`, `table4` et `table5`, renommés en `insee_data.csv`, `insee_cloud.csv` et `insee_ia.csv`. Aucun nettoyage de valeurs n'est fait à cette étape.
 2. **`02_load_to_sqlite.py`** — lit chaque CSV (séparateur `;`, UTF-8), convertit le marqueur INSEE de secret statistique `s` en valeur nulle sur toutes les colonnes de mesure (sans quoi la colonne serait chargée en texte et `CAST('s' AS FLOAT)` vaudrait silencieusement 0 dans SQLite), normalise les noms de colonnes (minuscules, espaces / apostrophes / tirets remplacés par `_`) et remplace la table du même nom dans SQLite.
 
-   Deux garde-fous : toute **autre** valeur non numérique (l'INSEE utilise aussi `nd`, `///`, `nr`) fait **échouer** le chargement avec le nom du fichier, de la colonne et des valeurs fautives, plutôt que de faire revenir le bug ci-dessus en silence ; et les colonnes à trous, que `pandas` remonte en décimal, repassent en entier nullable pour ne pas afficher `172345.0` dans le dashboard.
-3. **`03_sql_transformations.py`** — refuse de démarrer si la base est absente (sinon `sqlite3` en créerait une vide, et le script échouerait ensuite sur « no such table » en laissant derrière lui un `.db` qui ressemble à une base valide), puis exécute une requête SQL avec trois CTE (`CloudMaturity`, `IAMaturity`, `DataMaturity`) jointes sur `act_ir` et `taille_ir` :
+   Trois garde-fous. Toute **autre** valeur non numérique — l'INSEE utilise aussi `nd`, `///`, `nr`, et un champ vide est tout aussi suspect — fait **échouer** le chargement avec le nom du fichier, de la colonne et des valeurs fautives, plutôt que de faire revenir le bug ci-dessus en silence. Les colonnes à trous, que `pandas` remonte en décimal, repassent en entier nullable pour ne pas afficher `172345.0` dans le dashboard. Enfin, **tous les fichiers sont lus et validés avant la moindre écriture**, et les trois tables sont remplacées dans une seule transaction : sans cela, un échec sur le troisième fichier laissait en base deux tables rechargées et une du millésime précédent, et l'étape 3 produisait ensuite un livrable plausible mais faux, en sortant avec un code de succès. La table calculée `entreprise_score` est supprimée au passage, puisqu'elle ne décrit plus les tables qu'on remplace.
+3. **`03_sql_transformations.py`** — refuse de démarrer si la base est absente (sinon `sqlite3` en créerait une vide, et le script échouerait ensuite sur « no such table » en laissant derrière lui un `.db` qui ressemble à une base valide) **ou si l'une des trois tables brutes manque**, puis exécute une requête SQL avec trois CTE (`CloudMaturity`, `IAMaturity`, `DataMaturity`) jointes sur `act_ir` et `taille_ir` :
 
    | Indicateur | Colonne INSEE | Calcul |
    |---|---|---|
@@ -136,6 +162,8 @@ Détail des étapes :
    | `pct_erp_utilisation` | `pgi_erp` | `pgi_erp / nb_ent × 100` |
    | `digital_maturity_score` | — | somme des trois scores ; **nulle si une composante est masquée** |
    | `secret_statistique` | — | `1` si au moins une composante est masquée, sinon `0` |
+   | `est_agregat` | — | `1` si `secteur = 'Ens'` ou `taille = 'Ens'` : la ligne est un total, pas une observation |
+   | `est_sous_ensemble` | — | `1` si `secteur = 'S_TIC'` : secteur « dont », déjà compté dans les autres |
 
    Les lignes avec `nb_ent = 0` sont exclues. Le résultat est trié par score décroissant, les lignes non calculables étant renvoyées en fin de classement plutôt que confondues avec de faibles scores.
 
@@ -161,6 +189,7 @@ Ce que contient le rapport, pour éviter les surprises :
 - **Les libellés affichés ne sont pas ceux de l'INSEE** : la taille apparaît sous son code brut (`Ens`, `po1`…), et le code secteur `Ens` est affiché « Moyenne Nationale », un libellé maison. La correspondance officielle est dans `data/reference/metadonnees_irecotic23.csv`.
 - **Les deux graphiques excluent « Moyenne Nationale »** par un filtre de visuel : on compte 13 secteurs dans le CSV, on en voit 12 à l'écran. Le segment est par ailleurs enregistré sur la seule valeur `Ens`.
 - **Aucun visuel n'affiche `digital_maturity_score`**, ni `pct_erp_utilisation`, ni `secret_statistique` — seuls les trois sous-scores sont représentés, alors que le score global est ce que ce README met en avant.
+- **Les deux graphiques agrègent sur des lignes non disjointes** (voir « Les 65 lignes ne sont pas 65 observations »). Les barres groupées additionnent la ligne `Ens` d'un secteur **avec** ses `po1..po4` : les hauteurs sont gonflées de 12 à 24 % selon le secteur. Les barres empilées font la moyenne d'un total avec ses propres composantes. Et comme ces colonnes sont des taux, la somme affichée en ordonnée n'a de toute façon pas de signification. **Correctif à appliquer dans Power BI** : ajouter un filtre de page `est_agregat = 0` et `est_sous_ensemble = 0` (les deux colonnes sont désormais dans le CSV), et remplacer l'agrégat Somme par une Moyenne — ou mieux, recalculer les taux depuis les effectifs bruts.
 
 Effet de la correction sur les chiffres affichés. Les cellules masquées sont **vides** dans le CSV, donc lues comme nulles et non comme du texte : aucune erreur de type à l'actualisation. Sur les barres groupées (Somme), rien ne change, un zéro et un vide contribuant tous deux zéro. Sur les barres empilées à 100 %, à taille unique un vide donne exactement le même pourcentage qu'un zéro ; mais dès que plusieurs tailles sont sélectionnées, la **Moyenne** exclut les vides alors qu'elle intégrait les faux zéros :
 

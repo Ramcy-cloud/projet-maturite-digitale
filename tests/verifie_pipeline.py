@@ -26,6 +26,14 @@ NB_LIGNES_ATTENDUES = 65
 COLONNES_ETIQUETTES = {"taille_ir", "act_ir"}
 # Valeurs de référence relevées sur les données INSEE irecotic23.
 REFERENCES = {("S_M", "po4"): 61.9, ("Ens", "Ens"): 18.99}
+# Les 65 lignes ne sont pas disjointes : 17 portent un « Ens » (total d'une
+# taille, d'un secteur, ou total France) et 5 concernent S_TIC, libellé « DONT
+# secteur producteur de TIC » dans le dictionnaire INSEE, donc déjà compté
+# ailleurs. Sommer ou moyenner sans les écarter compte deux fois les mêmes
+# entreprises.
+NB_AGREGATS = 17
+NB_SOUS_ENSEMBLE = 5
+POPULATION_REELLE = 172345
 
 erreurs = []
 
@@ -76,9 +84,31 @@ def rejoue_pipeline(travail):
             raise SystemExit(f"Le script {script} a échoué (code {resultat.returncode}).")
 
 
+def empreinte_tables(travail):
+    """Empreinte du contenu des trois tables brutes, pour détecter toute
+    écriture partielle."""
+    chemin = os.path.join(travail, "data", "processed", "maturite_digitale.db")
+    if not os.path.exists(chemin):
+        return None
+    conn = sqlite3.connect(f"file:{chemin}?mode=ro", uri=True)
+    presentes = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table'"
+    )}
+    empreinte = {}
+    for table in sorted({"insee_cloud", "insee_data", "insee_ia"} & presentes):
+        empreinte[table] = sorted(map(str, conn.execute(f'SELECT * FROM "{table}"')))
+    conn.close()
+    return empreinte
+
+
 def lit_csv(chemin):
+    """Renvoie (lignes indexées par clé, noms de colonnes, ordre des clés)."""
     with open(chemin, newline="", encoding="utf-8") as f:
-        return {(l["secteur"], l["taille"]): l for l in csv.DictReader(f)}
+        lecteur = csv.DictReader(f)
+        lignes = list(lecteur)
+        colonnes = list(lecteur.fieldnames or [])
+    cles = [(l["secteur"], l["taille"]) for l in lignes]
+    return {c: l for c, l in zip(cles, lignes)}, colonnes, cles
 
 
 def main():
@@ -117,7 +147,11 @@ def main():
                 "SELECT secteur, taille FROM entreprise_score WHERE secret_statistique = 1"
             )
         }
-        verifie(masquees == LIGNES_MASQUEES, f"lignes masquées = {sorted(LIGNES_MASQUEES)}")
+        verifie(
+            masquees == LIGNES_MASQUEES,
+            f"lignes masquées attendues {sorted(LIGNES_MASQUEES)} "
+            f"— obtenu {sorted(masquees)}",
+        )
 
         print("\n3. Une mesure masquée ne vaut jamais 0")
         zeros = conn.execute(
@@ -142,7 +176,10 @@ def main():
         verifie(not hors_bornes, f"tous les scores globaux dans [0, 100] {hors_bornes or ''}")
         incoherents = conn.execute(
             "SELECT secteur, taille FROM entreprise_score WHERE secret_statistique = 0 AND "
-            "ABS(digital_maturity_score - (score_cloud + score_ia + score_data)) > 0.02"
+            # Borne théorique : les quatre valeurs sont arrondies séparément,
+            # soit 4 x 0.005 = 0.02. On passe juste au-dessus, sinon une ligne
+            # qui atteint la borne exactement échoue sur du bruit de flottant.
+            "ABS(digital_maturity_score - (score_cloud + score_ia + score_data)) > 0.021"
         ).fetchall()
         verifie(not incoherents, f"score global = somme des trois sous-scores {incoherents or ''}")
 
@@ -165,8 +202,13 @@ def main():
             )
 
         print("\n7. Classement : les lignes non calculables sortent en dernier")
+        # ORDER BY rowid explicite : une table SQL n'a pas d'ordre intrinsèque,
+        # et sans cela le test ne reposerait que sur l'ordre de parcours que
+        # SQLite choisit aujourd'hui.
         drapeaux = [
-            r[0] for r in conn.execute("SELECT secret_statistique FROM entreprise_score")
+            r[0] for r in conn.execute(
+                "SELECT secret_statistique FROM entreprise_score ORDER BY rowid"
+            )
         ]
         verifie(
             drapeaux == sorted(drapeaux),
@@ -191,24 +233,110 @@ def main():
         ).fetchone()[0]
         verifie(divergences == 0, f"nb_ent identique dans les trois tables ({divergences} écart(s))")
 
+        print("\n9. Lignes agrégées et sous-ensembles correctement signalés")
+        nb_agg, nb_sous = conn.execute(
+            "SELECT SUM(est_agregat), SUM(est_sous_ensemble) FROM entreprise_score"
+        ).fetchone()
+        verifie(nb_agg == NB_AGREGATS, f"{nb_agg} lignes agrégées (attendu {NB_AGREGATS})")
+        verifie(
+            nb_sous == NB_SOUS_ENSEMBLE,
+            f"{nb_sous} lignes sous-ensemble (attendu {NB_SOUS_ENSEMBLE})",
+        )
+        mal_classees = conn.execute(
+            "SELECT COUNT(*) FROM entreprise_score "
+            "WHERE est_agregat <> (CASE WHEN secteur = 'Ens' OR taille = 'Ens' THEN 1 ELSE 0 END)"
+        ).fetchone()[0]
+        verifie(mal_classees == 0, f"est_agregat cohérent avec les libellés ({mal_classees} écart(s))")
+        # Le test qui donne son sens aux drapeaux : agrégats et sous-ensembles
+        # écartés, les lignes restantes forment une partition de la population.
+        # À 1 près, l'INSEE pratiquant l'arrondi aléatoire.
+        population = conn.execute(
+            "SELECT SUM(total_entreprises) FROM entreprise_score "
+            "WHERE est_agregat = 0 AND est_sous_ensemble = 0"
+        ).fetchone()[0]
+        # Tolérance : l'INSEE arrondit chaque cellule publiée indépendamment
+        # (arrondi aléatoire, pour protéger le secret), donc une somme de
+        # cellules dérive de quelques unités — 4 secteurs dévient de +1, soit
+        # +3 au total sur les données actuelles. On autorise une unité par
+        # ligne publiée. C'est assez large pour l'arrondi, et plus de mille
+        # fois trop serré pour laisser passer un double comptage : sans écarter
+        # agrégats et sous-ensembles, la même somme donne 704 384.
+        derive = abs(population - POPULATION_REELLE)
+        verifie(
+            derive <= NB_LIGNES_ATTENDUES,
+            f"les lignes disjointes totalisent {population} entreprises, "
+            f"soit {derive} d'écart avec la population réelle "
+            f"{POPULATION_REELLE} (arrondi aléatoire INSEE)",
+        )
+
         conn.close()
 
-        print("\n9. Artefacts versionnés à jour par rapport au code")
-        attendu = lit_csv(os.path.join(travail, "data", "processed", "entreprise_score_final.csv"))
-        livre = lit_csv(os.path.join(RACINE, "data", "processed", "entreprise_score_final.csv"))
+        print("\n10. Artefacts versionnés à jour par rapport au code")
+        attendu, col_attendu, ordre_attendu = lit_csv(
+            os.path.join(travail, "data", "processed", "entreprise_score_final.csv")
+        )
+        livre, col_livre, ordre_livre = lit_csv(
+            os.path.join(RACINE, "data", "processed", "entreprise_score_final.csv")
+        )
+        # Les colonnes d'abord : sans ce contrôle, une colonne ajoutée par 03 et
+        # non régénérée dans le CSV versionné levait un KeyError plus bas au
+        # lieu d'être signalée — exactement le cas que cette section surveille.
+        verifie(
+            col_attendu == col_livre,
+            f"mêmes colonnes et même ordre de colonnes "
+            f"(rejeu {col_attendu} / versionné {col_livre})",
+        )
         verifie(set(attendu) == set(livre), "mêmes couples secteur x taille")
+        # L'ordre des lignes est porteur de sens ici : 03 renvoie les lignes non
+        # calculables en fin de classement.
+        verifie(ordre_attendu == ordre_livre, "même ordre de lignes qu'au rejeu")
+        communes = [c for c in col_attendu if c in col_livre]
         ecarts = [
             (cle, col, livre[cle][col], attendu[cle][col])
             for cle in attendu
             if cle in livre
-            for col in attendu[cle]
+            for col in communes
             if livre[cle][col] != attendu[cle][col]
         ]
         verifie(not ecarts, f"entreprise_score_final.csv identique au rejeu {ecarts[:5] or ''}")
 
-    print("\n10. Un marqueur INSEE inconnu fait échouer le chargement")
+        # Le .db est livré par la CD au même titre que le CSV : s'il n'est pas
+        # régénéré en même temps, la livraison embarque une base en désaccord
+        # avec le CSV posé à côté.
+        for chemin_a, chemin_b, etiquette in [(
+            os.path.join(travail, "data", "processed", "maturite_digitale.db"),
+            os.path.join(RACINE, "data", "processed", "maturite_digitale.db"),
+            "maturite_digitale.db",
+        )]:
+            ca = sqlite3.connect(f"file:{chemin_a}?mode=ro", uri=True)
+            cb = sqlite3.connect(f"file:{chemin_b}?mode=ro", uri=True)
+            req = "SELECT name, sql FROM sqlite_master WHERE type='table' ORDER BY name"
+            sa, sb = ca.execute(req).fetchall(), cb.execute(req).fetchall()
+            verifie(sa == sb, f"{etiquette} : mêmes tables et mêmes schémas qu'au rejeu")
+            if sa == sb:
+                differences = [
+                    nom
+                    for nom, _ in sa
+                    if sorted(map(str, ca.execute(f'SELECT * FROM "{nom}"')))
+                    != sorted(map(str, cb.execute(f'SELECT * FROM "{nom}"')))
+                ]
+                verifie(not differences, f"{etiquette} : mêmes données qu'au rejeu {differences or ''}")
+            ca.close()
+            cb.close()
+
+    print("\n11. Un marqueur inconnu fait échouer le chargement, sans rien casser")
     with tempfile.TemporaryDirectory(prefix="verif-marqueur-") as bac:
         prepare_copie(bac)
+        # On charge d'abord normalement : c'est l'état que l'échec ne doit pas
+        # abîmer. Sans écriture transactionnelle, un échec sur le 3e fichier
+        # laissait en base deux tables rechargées et une du millésime
+        # précédent, et 03 produisait ensuite un livrable faux en sortant
+        # avec un code 0.
+        verifie(
+            lance("02_load_to_sqlite.py", bac).returncode == 0,
+            "chargement initial de la copie réussi",
+        )
+        empreinte_avant = empreinte_tables(bac)
         cible = os.path.join(bac, "data", "raw", "insee_ia.csv")
         with open(cible, encoding="utf-8") as f:
             texte = f.read()
@@ -226,6 +354,17 @@ def main():
         verifie(
             "nd" in (resultat.stdout + resultat.stderr),
             "le message d'erreur nomme la valeur fautive",
+        )
+        verifie(
+            empreinte_tables(bac) == empreinte_avant,
+            "la base est intacte après l'échec, aucune table à moitié rechargée",
+        )
+        # Et 03 ne doit pas produire de livrable à partir d'un état douteux.
+        apres = lance("03_sql_transformations.py", bac)
+        verifie(
+            apres.returncode == 0,
+            "03 reste utilisable sur la base intacte (code "
+            f"{apres.returncode})",
         )
 
     print()
