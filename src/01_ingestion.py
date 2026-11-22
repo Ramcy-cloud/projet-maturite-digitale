@@ -1,10 +1,10 @@
-import os
-import requests
-import zipfile
 import io
 import logging
+import os
 import time
+import zipfile
 
+import requests
 
 # On récupère le chemin absolu du dossier où se trouve ce script (src)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -38,13 +38,13 @@ def run_ingestion():
     os.makedirs(RAW_DIR, exist_ok=True)
     
     try:
-        print(f"📥 Téléchargement de l'archive ZIP...")
+        print("📥 Téléchargement de l'archive ZIP...")
         response = requests.get(ZIP_URL, timeout=20)
         response.raise_for_status()
         
         with zipfile.ZipFile(io.BytesIO(response.content)) as z:
             all_files = z.namelist()
-            print(f" Archive téléchargée. Recherche des tables...")
+            print(" Archive téléchargée. Recherche des tables...")
             
             # Cibles en minuscules comme sur ta capture
             targets = {

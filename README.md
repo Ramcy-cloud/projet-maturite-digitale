@@ -40,6 +40,8 @@ Le projet suit une chaîne de traitement en quatre étapes. On parle d'**ETL** (
 
 Ces pondérations (30 / 40 / 30) sont un choix du projet, pas une norme de l'INSEE.
 
+> **L'échelle n'est pas parcourue de 0 à 100.** Atteindre 100 supposerait que *toutes* les entreprises d'une ligne utilisent les trois technologies. Dans les faits, les scores observés vont de **6,6 à 61,9** : l'IA pèse 40 points pour seulement 5,9 % d'adoption nationale, ce qui plafonne mécaniquement l'ensemble. Le score sert donc à **comparer des lignes entre elles**, pas à dire si un secteur est « bon » — « 61,9 / 100 » est le maximum observé, pas un milieu de tableau.
+
 ---
 
 ## Résultat / ce qu'on obtient
@@ -113,7 +115,7 @@ Les codes de secteur (`S_C`, `S_TIC`, `S_M`…) et leurs libellés officiels son
 | Téléchargement | `requests` |
 | Manipulation de données | `pandas` |
 | Base de données | SQLite (via `sqlite3`, inclus dans Python, et `SQLAlchemy`) |
-| Exploration | Jupyter Notebook |
+| Exploration | Jupyter Notebook (dans `requirements-dev.txt`) |
 | Visualisation | Power BI Desktop |
 
 ### Installation
@@ -123,6 +125,12 @@ pip install -r requirements.txt
 ```
 
 `sqlite3` fait partie de la bibliothèque standard de Python : il ne s'installe pas avec `pip`.
+
+Pour contribuer — passer le linter ou relancer le notebook — ajouter les outils de développement :
+
+```bash
+pip install -r requirements-dev.txt
+```
 
 ### Exécution du pipeline
 
@@ -173,7 +181,7 @@ Le dépôt contient déjà les fichiers produits par ces trois étapes (`data/ra
 
 Les workflows GitHub Actions n'embarquent aucune logique : ils appellent les workflows réutilisables de [`Ramcy-cloud/ci-templates`](https://github.com/Ramcy-cloud/ci-templates) en version `@v1`.
 
-- **`.github/workflows/ci.yml`** — sur chaque pull request et chaque push sur `main` : installe `requirements.txt`, lance `tests/verifie_pipeline.py`, puis publie les données calculées comme artefact `build-donnees`. Un second job verrouille le flux de branches : une pull request vers `main` doit venir de `dev`, sinon la CI échoue.
+- **`.github/workflows/ci.yml`** — sur chaque pull request et chaque push sur `main` : installe `requirements.txt` et `requirements-dev.txt`, passe le linter (`ruff check .`, bloquant), lance `tests/verifie_pipeline.py`, puis publie les données calculées comme artefact `build-donnees`. Un second job verrouille le flux de branches : une pull request vers `main` doit venir de `dev`, sinon la CI échoue.
 - **`.github/workflows/cd.yml`** — livraison continue : déclenchée par une CI verte sur `main`, elle republie les artefacts en paquet `livraison-<sha>` via l'environnement GitHub `production`. Celui-ci exige une validation manuelle (`Actions` → exécution `CD` → `Review deployments` → `Approve`) : **rien n'est livré automatiquement**.
 
 L'étape `01_ingestion.py` n'est pas rejouée en CI (elle téléchargerait l'archive INSEE) : les CSV bruts sont versionnés dans `data/raw/`.
@@ -202,7 +210,19 @@ C'est l'effet recherché : la moyenne n'est plus tirée vers le bas par des zér
 
 ### Notebook
 
-`notebooks/04_EDA_and_Insights.ipynb` charge les trois CSV bruts avec `pandas` et affiche leurs premières lignes. Il applique la même règle que `src/02_load_to_sqlite.py` sur le secret statistique, et trouve la racine du dépôt tout seul : il fonctionne quel que soit le dossier de travail du noyau. Il est **versionné sans ses sorties** — les exécuter demande Jupyter, qui ne fait pas partie de `requirements.txt`. L'analyse exploratoire (EDA, *Exploratory Data Analysis*) n'y est pas encore développée.
+`notebooks/04_EDA_and_Insights.ipynb` contient l'**analyse exploratoire** (EDA, *Exploratory Data Analysis*) et répond aux trois questions posées en haut de ce README. Il est versionné **avec ses sorties**, donc lisible directement sur GitHub sans rien installer.
+
+Il travaille sur la table de scores, pas sur les CSV bruts, et applique la précaution de méthode décrite plus haut : pour chaque question, il lit la ligne **déjà agrégée par l'INSEE au bon niveau** plutôt que de recombiner les cellules lui-même. Classement des secteurs sur les lignes `taille = 'Ens'`, comparaison des tailles sur les lignes `secteur = 'Ens'`. La racine du dépôt est trouvée automatiquement : il fonctionne quel que soit le dossier de travail du noyau.
+
+Ses trois résultats :
+
+| Constat | Chiffre |
+|---|---|
+| Secteur et taille pèsent **le même poids** — aucune des deux dimensions ne domine | amplitude de 35,6 points entre secteurs, 35,8 points entre tailles |
+| L'**IA est le pilier le plus en retard**, et il est aussi le plus lourdement pondéré (40 points), ce qui écrase tous les scores | 5,9 % d'adoption, contre 26,8 % pour le cloud et 28,7 % pour les données |
+| Ce retard **ne se rattrape pas avec la taille** | chez les 250 personnes et plus : IA 20,9 %, cloud 67,2 %, données 69,3 % |
+
+Pour le relancer : `pip install -r requirements-dev.txt`, puis `jupyter lab notebooks/04_EDA_and_Insights.ipynb`. La **visualisation** n'est pas dans le notebook : c'est le rôle du tableau de bord Power BI.
 
 ### Structure du projet
 
@@ -211,7 +231,7 @@ projet-maturite-digitale/
 ├── .github/workflows/
 │   ├── cd.yml                        # Livraison après validation manuelle
 │   └── ci.yml                        # Vérification (appelle ci-templates@v1)
-├── .gitattributes
+├── .gitattributes                    # Fins de ligne, et binaires déclarés (.pbix, .db)
 ├── .gitignore
 ├── data/
 │   ├── raw/                          # CSV extraits de l'archive INSEE
@@ -232,6 +252,8 @@ projet-maturite-digitale/
 ├── tests/
 │   └── verifie_pipeline.py           # Rejoue le pipeline et contrôle les invariants
 ├── requirements.txt                  # Dépendances du pipeline
+├── requirements-dev.txt              # Linter et exécution du notebook
+├── ruff.toml                         # Règles de lint, figées pour CI et local
 ├── visualisation.pbix                # Tableau de bord Power BI
 ├── LICENSE
 └── README.md

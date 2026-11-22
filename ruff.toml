@@ -1,0 +1,27 @@
+# Configuration explicite du linter, pour que la CI et un poste local donnent
+# exactement le meme resultat. Sans « select » figé, une montee de version de
+# ruff peut activer de nouvelles regles et faire rougir la CI sur du code qui
+# n'a pas bouge. La version de ruff est elle aussi epinglee, dans
+# requirements-dev.txt.
+target-version = "py311"
+line-length = 100
+
+[lint]
+select = [
+    "E",      # pycodestyle : erreurs
+    "F",      # pyflakes : noms non definis, imports inutilises, f-strings vides
+    "I",      # isort : ordre des imports
+    "UP",     # pyupgrade : tournures perimees pour la version de Python ciblee
+    "B",      # flake8-bugbear : pieges courants
+    "PL",     # pylint : sous-ensemble porte par ruff
+    "FURB",   # refurb : simplifications
+]
+
+[lint.per-file-ignores]
+# Script de verification volontairement lineaire : 11 sections numerotees qui
+# se lisent de haut en bas et dont la sortie console suit l'ordre du code.
+# Le decouper en fonctions rendrait le rapport moins lisible que le script.
+"tests/verifie_pipeline.py" = ["PLR0915"]
+# Le nom de ces modules commence par un chiffre : ils ne sont pas importables,
+# ils s'executent en script. La regle sur les noms de module ne s'applique pas.
+"src/0*.py" = ["N999"]

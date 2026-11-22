@@ -1,0 +1,11 @@
+# Outils de developpement, pas necessaires pour executer le pipeline.
+# Installation : pip install -r requirements.txt -r requirements-dev.txt
+#
+# Versions epinglees : le linter doit rendre le meme verdict en CI et en local,
+# et une montee de version de ruff active de nouvelles regles par defaut.
+ruff==0.17.6
+
+# Execution du notebook d'analyse exploratoire.
+jupyter>=1.0,<2.0
+nbformat>=5.9,<6.0
+nbclient>=0.9,<1.0
