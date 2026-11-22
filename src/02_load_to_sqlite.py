@@ -1,10 +1,10 @@
-import pandas as pd
-from sqlalchemy import create_engine, text
 import logging
 import os
 from pathlib import PurePath
 
-# 
+import pandas as pd
+from sqlalchemy import create_engine, text
+
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.dirname(SCRIPT_DIR)
 

@@ -1,8 +1,9 @@
-import sqlite3
-import pandas as pd
 import logging
 import os
+import sqlite3
 import time
+
+import pandas as pd
 
 # --- Gestion experte des chemins ---
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -158,5 +159,5 @@ if __name__ == '__main__':
     
     end_time = time.time()
     logger.info(f"Modélisation terminée en {end_time - start_time:.2f}s")
-    print(f"🚀 Terminé avec succès ! La table 'entreprise_score' est prête pour Power BI.")
+    print("🚀 Terminé avec succès ! La table 'entreprise_score' est prête pour Power BI.")
     print(f"Temps total modélisation : {end_time - start_time:.2f}s")

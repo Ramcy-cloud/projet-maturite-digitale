@@ -1,2 +1,12 @@
-# Auto detect text files and perform LF normalization
+# Normalisation des fins de ligne pour les fichiers texte.
 * text=auto
+
+# Fichiers binaires, declares explicitement. Git les reconnait aujourd'hui par
+# heuristique (presence d'octets nuls dans les premiers kilo-octets), mais un
+# .pbix ou une base SQLite qui n'en contiendrait pas serait traite comme du
+# texte et corrompu par la conversion des fins de ligne.
+*.pbix binary
+*.db binary
+
+# Les notebooks sont du JSON : un diff ligne a ligne y est illisible.
+*.ipynb -diff
