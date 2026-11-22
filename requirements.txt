@@ -1,0 +1,8 @@
+# Dépendances du pipeline ETL (src/01 à src/03).
+# Installation : pip install -r requirements.txt
+# Borne haute : le livrable est un CSV compare caractere par caractere en
+# CI, et le formatage des flottants comme le chemin Int64/to_sql ont deja
+# change entre versions majeures de pandas.
+pandas>=2.0,<3.0
+requests>=2.31,<3.0
+SQLAlchemy>=2.0,<3.0

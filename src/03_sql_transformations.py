@@ -17,11 +17,17 @@ logging.basicConfig(
     filename=os.path.join(LOG_DIR, 'pipeline.log'),
     level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    filemode='a'
+    filemode='a',
+    # Sans cela le journal est ecrit dans l'encodage de la locale (cp1252 sous
+    # Windows) : un run local puis un run en CI produisent un fichier a
+    # encodage mixte, impossible a relire d'un bloc.
+    encoding='utf-8'
 )
 logger = logging.getLogger('SQLTransform')
 
 DB_PATH = os.path.join(PROCESSED_DIR, 'maturite_digitale.db')
+# Tables que la requete attend ; leur absence signale un chargement incomplet.
+TABLES_REQUISES = {'insee_cloud', 'insee_data', 'insee_ia'}
 
 def create_maturity_score(conn):
     """Exécute les jointures SQL et calcule le score de maturité digital."""
@@ -76,7 +82,16 @@ def create_maturity_score(conn):
         CASE
             WHEN c.score_cloud IS NULL OR i.score_ia IS NULL OR d.score_data IS NULL THEN 1
             ELSE 0
-        END AS secret_statistique
+        END AS secret_statistique,
+        -- Les 65 lignes ne sont PAS disjointes : « Ens » est un total, pas une
+        -- observation. Pour un secteur donné, la ligne Ens est la somme de ses
+        -- po1..po4 (vérifié), et Ens/Ens est le total France. Sommer ou moyenner
+        -- sans écarter ces lignes compte deux fois les mêmes entreprises.
+        CASE WHEN c.act_ir = 'Ens' OR c.taille_ir = 'Ens' THEN 1 ELSE 0 END AS est_agregat,
+        -- S_TIC est libellé « DONT secteur producteur de TIC » dans le
+        -- dictionnaire INSEE : c'est un sous-ensemble des autres secteurs, déjà
+        -- compté dans S_C et S_J_G95.1, pas un secteur de plus.
+        CASE WHEN c.act_ir = 'S_TIC' THEN 1 ELSE 0 END AS est_sous_ensemble
     FROM CloudMaturity c
     JOIN IAMaturity i 
         ON c.act_ir = i.act_ir AND c.taille_ir = i.taille_ir
@@ -101,8 +116,32 @@ if __name__ == '__main__':
     print("--- Lancement de la Modélisation SQL ---")
     start_time = time.time()
     
+    # sqlite3.connect cree un fichier vide si la base est absente : le script
+    # echouerait ensuite sur « no such table », en laissant derriere lui un .db
+    # vide qui ressemble a une base valide.
+    if not os.path.exists(DB_PATH):
+        raise SystemExit(
+            f"Base introuvable : {DB_PATH}. "
+            "Lancer d'abord src/02_load_to_sqlite.py."
+        )
+
     print("🗄️ Connexion à la base de données...")
     conn = sqlite3.connect(DB_PATH)
+
+    # Un chargement interrompu peut laisser une base incomplète. Vérifier le
+    # seul fichier ne suffit pas : sans ce contrôle, le script produirait un
+    # livrable plausible à partir de tables de millésimes différents, en
+    # sortant avec un code 0.
+    presentes = {r[0] for r in conn.execute(
+        "SELECT name FROM sqlite_master WHERE type = 'table'"
+    )}
+    manquantes = sorted(TABLES_REQUISES - presentes)
+    if manquantes:
+        conn.close()
+        raise SystemExit(
+            f"Tables absentes de {DB_PATH} : {', '.join(manquantes)}. "
+            "Relancer src/02_load_to_sqlite.py."
+        )
     
     print("⚙️ Calcul du Score de Maturité en cours...")
     df_final = create_maturity_score(conn)
