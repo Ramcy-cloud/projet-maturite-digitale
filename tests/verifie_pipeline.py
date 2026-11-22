@@ -34,6 +34,9 @@ REFERENCES = {("S_M", "po4"): 61.9, ("Ens", "Ens"): 18.99}
 NB_AGREGATS = 17
 NB_SOUS_ENSEMBLE = 5
 POPULATION_REELLE = 172345
+# Ecart tolere entre une valeur de reference et celle recalculee : les scores
+# sont arrondis a 2 decimales.
+TOLERANCE_REFERENCE = 0.01
 
 erreurs = []
 
@@ -64,6 +67,9 @@ def lance(script, travail):
         [sys.executable, os.path.join(travail, "src", script)],
         capture_output=True,
         text=True,
+        # On inspecte le code retour nous-memes : plusieurs verifications
+        # attendent justement un echec.
+        check=False,
         # Les scripts écrivent de l'UTF-8 : sans le préciser, la sortie est
         # décodée avec l'encodage local (cp1252 sous Windows) et les emojis
         # font échouer la lecture du flux.
@@ -107,8 +113,8 @@ def lit_csv(chemin):
         lecteur = csv.DictReader(f)
         lignes = list(lecteur)
         colonnes = list(lecteur.fieldnames or [])
-    cles = [(l["secteur"], l["taille"]) for l in lignes]
-    return {c: l for c, l in zip(cles, lignes)}, colonnes, cles
+    cles = [(ligne["secteur"], ligne["taille"]) for ligne in lignes]
+    return dict(zip(cles, lignes, strict=True)), colonnes, cles
 
 
 def main():
@@ -130,7 +136,10 @@ def main():
                     f"SELECT COUNT(*) FROM {table} WHERE typeof({c}) = 'text'"
                 ).fetchone()[0]
             ]
-            verifie(not textuelles, f"{table} : aucune colonne de mesure en TEXT {textuelles or ''}")
+            verifie(
+                not textuelles,
+                f"{table} : aucune colonne de mesure en TEXT {textuelles or ''}",
+            )
 
         print("\n2. Table finale : forme attendue")
         nb, nb_masquees = conn.execute(
@@ -196,7 +205,7 @@ def main():
             # TypeError au lieu d'être signalé comme un échec lisible.
             valeur = obtenu[0] if obtenu else None
             verifie(
-                valeur is not None and abs(valeur - attendu) < 0.01,
+                valeur is not None and abs(valeur - attendu) < TOLERANCE_REFERENCE,
                 f"{secteur}/{taille} = {attendu} "
                 f"(obtenu {valeur if valeur is not None else 'NULL ou ligne absente'})",
             )
@@ -231,7 +240,10 @@ def main():
             "JOIN insee_data d USING (act_ir, taille_ir) "
             "WHERE c.nb_ent IS NOT i.nb_ent OR c.nb_ent IS NOT d.nb_ent"
         ).fetchone()[0]
-        verifie(divergences == 0, f"nb_ent identique dans les trois tables ({divergences} écart(s))")
+        verifie(
+            divergences == 0,
+            f"nb_ent identique dans les trois tables ({divergences} écart(s))",
+        )
 
         print("\n9. Lignes agrégées et sous-ensembles correctement signalés")
         nb_agg, nb_sous = conn.execute(
@@ -246,7 +258,10 @@ def main():
             "SELECT COUNT(*) FROM entreprise_score "
             "WHERE est_agregat <> (CASE WHEN secteur = 'Ens' OR taille = 'Ens' THEN 1 ELSE 0 END)"
         ).fetchone()[0]
-        verifie(mal_classees == 0, f"est_agregat cohérent avec les libellés ({mal_classees} écart(s))")
+        verifie(
+            mal_classees == 0,
+            f"est_agregat cohérent avec les libellés ({mal_classees} écart(s))",
+        )
         # Le test qui donne son sens aux drapeaux : agrégats et sous-ensembles
         # écartés, les lignes restantes forment une partition de la population.
         # À 1 près, l'INSEE pratiquant l'arrondi aléatoire.
@@ -320,7 +335,10 @@ def main():
                     if sorted(map(str, ca.execute(f'SELECT * FROM "{nom}"')))
                     != sorted(map(str, cb.execute(f'SELECT * FROM "{nom}"')))
                 ]
-                verifie(not differences, f"{etiquette} : mêmes données qu'au rejeu {differences or ''}")
+                verifie(
+                    not differences,
+                    f"{etiquette} : mêmes données qu'au rejeu {differences or ''}",
+                )
             ca.close()
             cb.close()
 
@@ -342,7 +360,7 @@ def main():
             texte = f.read()
         # Remplace le « s » isolé par « nd », autre marqueur INSEE, sans toucher
         # aux étiquettes (Ens, S_DE, po1...).
-        altere, remplaces = re.subn(r"(?<=;)s(?=[;\r\n]|$)", "nd", texte, flags=re.M)
+        altere, remplaces = re.subn(r"(?<=;)s(?=[;\r\n]|$)", "nd", texte, flags=re.MULTILINE)
         with open(cible, "w", encoding="utf-8", newline="") as f:
             f.write(altere)
         verifie(remplaces > 0, f"{remplaces} marqueur(s) remplacé(s) par « nd » dans la copie")

@@ -35,6 +35,13 @@ jobs:
       working-directory: .
       python-version: "3.11"
       requirements-file: requirements.txt
+      # Outils de développement, pour le lint. Le fichier est la source unique
+      # de la version de ruff, afin que la CI et un poste local rendent le même
+      # verdict ; la configuration des règles est figée dans ruff.toml.
+      install-command: pip install -r requirements-dev.txt
+      # Les règles sont volontairement bloquantes : le dépôt est propre
+      # (0 constat), autant ne pas laisser la dette réapparaître.
+      lint-command: ruff check .
       # Rejoue les étapes 02 et 03 sur une copie des données brutes et contrôle
       # les invariants du score. Garde-fou principal : le marqueur INSEE de
       # secret statistique « s » doit rester NULL et ne jamais valoir 0.
