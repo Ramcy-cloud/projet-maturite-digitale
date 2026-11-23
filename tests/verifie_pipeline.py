@@ -60,9 +60,12 @@ def prepare_copie(travail):
 def lance(script, travail):
     """Lance un script du pipeline dans la copie et renvoie le resultat brut."""
     env = dict(os.environ)
-    # Les scripts impriment des emojis : sans cela, la console Windows (cp1252)
-    # fait echouer le pipeline sur un UnicodeEncodeError.
-    env["PYTHONIOENCODING"] = "utf-8"
+    # On RETIRE PYTHONIOENCODING au lieu de l'imposer : chaque script force
+    # lui-même l'UTF-8 sur sa sortie (voir son en-tête). Le laisser passer
+    # masquerait une régression, et ce test est le bon endroit pour la voir :
+    # la sortie étant capturée ici, on est précisément dans le cas où Python
+    # retombe sinon sur cp1252 et où le premier print échouait.
+    env.pop("PYTHONIOENCODING", None)
     return subprocess.run(
         [sys.executable, os.path.join(travail, "src", script)],
         capture_output=True,
@@ -286,7 +289,11 @@ def main():
 
         conn.close()
 
-        print("\n10. Artefacts versionnés à jour par rapport au code")
+        # Seul le CSV est versionné. La base SQLite est reconstruite par les
+        # étapes 02 et 03 (en CI comme en local) et n'est donc jamais en
+        # désaccord avec le CSV livré à côté d'elle : il n'y a plus de copie
+        # figée au dépôt à confronter au rejeu.
+        print("\n10. Le CSV livrable est à jour par rapport au code")
         attendu, col_attendu, ordre_attendu = lit_csv(
             os.path.join(travail, "data", "processed", "entreprise_score_final.csv")
         )
@@ -314,33 +321,6 @@ def main():
             if livre[cle][col] != attendu[cle][col]
         ]
         verifie(not ecarts, f"entreprise_score_final.csv identique au rejeu {ecarts[:5] or ''}")
-
-        # Le .db est livré par la CD au même titre que le CSV : s'il n'est pas
-        # régénéré en même temps, la livraison embarque une base en désaccord
-        # avec le CSV posé à côté.
-        for chemin_a, chemin_b, etiquette in [(
-            os.path.join(travail, "data", "processed", "maturite_digitale.db"),
-            os.path.join(RACINE, "data", "processed", "maturite_digitale.db"),
-            "maturite_digitale.db",
-        )]:
-            ca = sqlite3.connect(f"file:{chemin_a}?mode=ro", uri=True)
-            cb = sqlite3.connect(f"file:{chemin_b}?mode=ro", uri=True)
-            req = "SELECT name, sql FROM sqlite_master WHERE type='table' ORDER BY name"
-            sa, sb = ca.execute(req).fetchall(), cb.execute(req).fetchall()
-            verifie(sa == sb, f"{etiquette} : mêmes tables et mêmes schémas qu'au rejeu")
-            if sa == sb:
-                differences = [
-                    nom
-                    for nom, _ in sa
-                    if sorted(map(str, ca.execute(f'SELECT * FROM "{nom}"')))
-                    != sorted(map(str, cb.execute(f'SELECT * FROM "{nom}"')))
-                ]
-                verifie(
-                    not differences,
-                    f"{etiquette} : mêmes données qu'au rejeu {differences or ''}",
-                )
-            ca.close()
-            cb.close()
 
     print("\n11. Un marqueur inconnu fait échouer le chargement, sans rien casser")
     with tempfile.TemporaryDirectory(prefix="verif-marqueur-") as bac:

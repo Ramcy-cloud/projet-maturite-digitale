@@ -179,3 +179,12 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+# --- Specifique a ce projet ---
+
+# Base SQLite regeneree a chaque execution du pipeline (etapes 02 et 03).
+# Elle n'est pas versionnee : son contenu est entierement derive de data/raw/
+# et du code, et ses octets changent a chaque reconstruction meme a contenu
+# identique (agencement interne de SQLite), ce qui salissait l'arbre git apres
+# chaque execution. La CI la reconstruit et la publie dans l'artefact
+# « build-donnees », a cote du CSV livrable, lui aussi versionne.
+data/processed/maturite_digitale.db

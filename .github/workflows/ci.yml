@@ -42,6 +42,19 @@ jobs:
       # Les règles sont volontairement bloquantes : le dépôt est propre
       # (0 constat), autant ne pas laisser la dette réapparaître.
       lint-command: ruff check .
+      # La base SQLite n'est pas versionnée (voir .gitignore) : elle est entièrement
+      # dérivée de data/raw/ et du code. Elle est donc reconstruite ici, sinon
+      # l'artefact ci-dessous n'aurait rien à publier et la CI échouerait
+      # (le template impose if-no-files-found: error).
+      #
+      # Le « git checkout » n'est pas cosmétique : 03 réécrit AUSSI le CSV, lui
+      # versionné. Sans restauration, le contrôle 10 des tests comparerait le
+      # rejeu à un CSV qu'on vient de régénérer : il passerait toujours, et ne
+      # détecterait plus un CSV laissé périmé par rapport au code.
+      setup-command: |
+        python src/02_load_to_sqlite.py
+        python src/03_sql_transformations.py
+        git checkout -- data/processed/entreprise_score_final.csv
       # Rejoue les étapes 02 et 03 sur une copie des données brutes et contrôle
       # les invariants du score. Garde-fou principal : le marqueur INSEE de
       # secret statistique « s » doit rester NULL et ne jamais valoir 0.

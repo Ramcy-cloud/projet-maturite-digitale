@@ -47,7 +47,7 @@ Ces pondérations (30 / 40 / 30) sont un choix du projet, pas une norme de l'INS
 ## Résultat / ce qu'on obtient
 
 - Un tableau de **65 lignes** (13 modalités de secteur × 5 catégories de taille) avec, pour chacune : le nombre d'entreprises, les trois sous-scores, la part d'entreprises équipées d'un ERP (logiciel de gestion intégré qui centralise comptabilité, stocks, achats…), le **score global sur 100**, un indicateur `secret_statistique` (`1` si le score n'est pas calculable) et deux indicateurs de structure, `est_agregat` et `est_sous_ensemble`, **à lire impérativement avant toute addition ou moyenne** (voir ci-dessous).
-- Ce tableau est disponible dans `data/processed/entreprise_score_final.csv` et dans la table `entreprise_score` de la base SQLite.
+- Ce tableau est disponible dans `data/processed/entreprise_score_final.csv`, versionné dans le dépôt, et dans la table `entreprise_score` de la base SQLite. La base, elle, **n'est pas versionnée** : elle est reconstruite par le pipeline (voir « Pourquoi la base SQLite n'est pas dans le dépôt »).
 
 Quelques valeurs tirées de ce fichier :
 
@@ -144,7 +144,7 @@ python src/03_sql_transformations.py  # Calcule les scores → table entreprise_
 
 Les chemins sont calculés à partir de l'emplacement des scripts : ils peuvent être lancés depuis n'importe quel dossier. Les journaux d'exécution sont ajoutés dans `logs/pipeline.log`, en UTF-8 (dossier créé automatiquement, non versionné ; le fichier est recréé au prochain lancement s'il est supprimé).
 
-Sous Windows, les scripts affichent des emojis : si la console les refuse (`UnicodeEncodeError`), préfixer les commandes par `PYTHONIOENCODING=utf-8` (ou `$env:PYTHONIOENCODING = "utf-8"` sous PowerShell).
+Les scripts affichent des icônes dans leurs messages, et **imposent eux-mêmes l'UTF-8 sur leur sortie** : aucune variable d'environnement n'est nécessaire. C'est indispensable dès que la sortie n'est pas une console Windows — redirection vers un fichier, tube, Git Bash, CI : Python retombe alors sur l'encodage de la locale (cp1252 sous Windows), où ces icônes n'existent pas, et le premier `print` levait `UnicodeEncodeError` avant que le script n'ait rien fait. `tests/verifie_pipeline.py` retire délibérément `PYTHONIOENCODING` de l'environnement des scripts qu'il lance, pour que ce défaut ne puisse pas revenir sans faire rougir la CI.
 
 ### Vérification
 
@@ -152,7 +152,7 @@ Sous Windows, les scripts affichent des emojis : si la console les refuse (`Unic
 python tests/verifie_pipeline.py
 ```
 
-Le script rejoue les étapes 02 et 03 sur une **copie** des données brutes (jamais sur les fichiers versionnés) et contrôle 33 invariants : aucune mesure chargée en texte, les 4 lignes sous secret statistique restent NULL et ne valent jamais 0, les 61 autres gardent un score complet, le score global égale la somme des trois sous-scores et reste dans `[0, 100]`, deux valeurs de référence, le classement qui renvoie les lignes non calculables en dernier, les trois tables brutes qui gardent leurs 65 lignes avec le même `nb_ent`, la cohérence des drapeaux `est_agregat` / `est_sous_ensemble` (une fois les agrégats écartés, les lignes restantes totalisent bien la population réelle), la concordance entre `entreprise_score_final.csv` **et la base** versionnés et le rejeu, et enfin le refus d'un marqueur INSEE inconnu : la dernière vérification remplace `s` par `nd` dans une copie, exige que le chargement **échoue** au lieu de produire un 0 silencieux, et vérifie qu'il n'a laissé derrière lui aucune table à moitié rechargée. C'est ce script que lance la CI.
+Le script rejoue les étapes 02 et 03 sur une **copie** des données brutes (jamais sur les fichiers versionnés) et contrôle 31 invariants : aucune mesure chargée en texte, les 4 lignes sous secret statistique restent NULL et ne valent jamais 0, les 61 autres gardent un score complet, le score global égale la somme des trois sous-scores et reste dans `[0, 100]`, deux valeurs de référence, le classement qui renvoie les lignes non calculables en dernier, les trois tables brutes qui gardent leurs 65 lignes avec le même `nb_ent`, la cohérence des drapeaux `est_agregat` / `est_sous_ensemble` (une fois les agrégats écartés, les lignes restantes totalisent bien la population réelle), la concordance entre le `entreprise_score_final.csv` versionné et le rejeu (la base n'est plus confrontée : n'étant plus versionnée, elle est reconstruite à chaque fois et ne peut plus être en retard sur le code), et enfin le refus d'un marqueur INSEE inconnu : la dernière vérification remplace `s` par `nd` dans une copie, exige que le chargement **échoue** au lieu de produire un 0 silencieux, et vérifie qu'il n'a laissé derrière lui aucune table à moitié rechargée. C'est ce script que lance la CI.
 
 Détail des étapes :
 
@@ -175,13 +175,22 @@ Détail des étapes :
 
    Les lignes avec `nb_ent = 0` sont exclues. Le résultat est trié par score décroissant, les lignes non calculables étant renvoyées en fin de classement plutôt que confondues avec de faibles scores.
 
-Le dépôt contient déjà les fichiers produits par ces trois étapes (`data/raw/` et `data/processed/`) : il n'est pas nécessaire de relancer le pipeline pour ouvrir le tableau de bord.
+Le dépôt contient déjà les CSV bruts (`data/raw/`) et le CSV livrable (`data/processed/entreprise_score_final.csv`) : il n'est pas nécessaire de relancer le pipeline pour ouvrir le tableau de bord, qui lit ce CSV.
+
+### Pourquoi la base SQLite n'est pas dans le dépôt
+
+`data/processed/maturite_digitale.db` est dans `.gitignore`. Son contenu est **entièrement dérivé** de `data/raw/` et du code, et SQLite réagence ses pages à chaque reconstruction : le fichier changeait donc d'octets à contenu identique, et salissait l'arbre git après chaque exécution du pipeline. Pour l'obtenir, deux voies :
+
+- lancer les étapes 02 et 03 ci-dessus, ce qui la crée en local ;
+- ou la récupérer dans l'artefact `build-donnees` publié par la CI, qui la contient avec le CSV.
+
+Le CSV, lui, **reste versionné** : il est le livrable lisible du projet, la source du tableau de bord, et le contrôle 10 du script de vérification garantit qu'il n'est jamais en retard sur le code.
 
 ### Intégration et livraison continues
 
 Les workflows GitHub Actions n'embarquent aucune logique : ils appellent les workflows réutilisables de [`Ramcy-cloud/ci-templates`](https://github.com/Ramcy-cloud/ci-templates) en version `@v1`.
 
-- **`.github/workflows/ci.yml`** — sur chaque pull request et chaque push sur `main` : installe `requirements.txt` et `requirements-dev.txt`, passe le linter (`ruff check .`, bloquant), lance `tests/verifie_pipeline.py`, puis publie les données calculées comme artefact `build-donnees`. Un second job verrouille le flux de branches : une pull request vers `main` doit venir de `dev`, sinon la CI échoue.
+- **`.github/workflows/ci.yml`** — sur chaque pull request et chaque push sur `main` : installe `requirements.txt` et `requirements-dev.txt`, passe le linter (`ruff check .`, bloquant), **reconstruit la base SQLite** en rejouant 02 et 03 (elle n'est pas versionnée, et l'artefact ne peut pas publier un fichier absent), lance `tests/verifie_pipeline.py`, puis publie les données calculées comme artefact `build-donnees`. Cette reconstruction restaure ensuite le CSV versionné avec `git checkout`, car 03 le réécrit : sans cela le contrôle 10 comparerait le rejeu à un fichier tout juste régénéré et ne détecterait plus un CSV périmé. Un second job verrouille le flux de branches : une pull request vers `main` doit venir de `dev`, sinon la CI échoue.
 - **`.github/workflows/cd.yml`** — livraison continue : déclenchée par une CI verte sur `main`, elle republie les artefacts en paquet `livraison-<sha>` via l'environnement GitHub `production`. Celui-ci exige une validation manuelle (`Actions` → exécution `CD` → `Review deployments` → `Approve`) : **rien n'est livré automatiquement**.
 
 L'étape `01_ingestion.py` n'est pas rejouée en CI (elle téléchargerait l'archive INSEE) : les CSV bruts sont versionnés dans `data/raw/`.
@@ -241,8 +250,8 @@ projet-maturite-digitale/
 │   ├── reference/
 │   │   └── metadonnees_irecotic23.csv # Dictionnaire des variables et des codes INSEE
 │   └── processed/                    # Entièrement régénérable par le pipeline
-│       ├── maturite_digitale.db      # Base SQLite (tables brutes + entreprise_score)
-│       └── entreprise_score_final.csv
+│       ├── maturite_digitale.db      # Base SQLite — NON versionnée (.gitignore)
+│       └── entreprise_score_final.csv # Livrable versionné, source du tableau de bord
 ├── notebooks/
 │   └── 04_EDA_and_Insights.ipynb
 ├── src/

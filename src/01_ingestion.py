@@ -1,10 +1,21 @@
 import io
 import logging
 import os
+import sys
 import time
 import zipfile
 
 import requests
+
+# Les messages de ce script contiennent des icônes. Quand sa sortie n'est pas
+# une console Windows (redirection vers un fichier, tube, Git Bash, CI), Python
+# retombe sur l'encodage de la locale — cp1252 sous Windows — où ces icônes
+# n'existent pas, et le premier print levait UnicodeEncodeError : le script
+# mourait avant d'avoir fait quoi que ce soit. Même cause que pour le journal
+# ci-dessous, donc même correctif : on impose l'UTF-8 sur la sortie.
+for flux in (sys.stdout, sys.stderr):
+    if hasattr(flux, 'reconfigure'):
+        flux.reconfigure(encoding='utf-8')
 
 # On récupère le chemin absolu du dossier où se trouve ce script (src)
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
