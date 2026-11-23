@@ -60,9 +60,12 @@ def prepare_copie(travail):
 def lance(script, travail):
     """Lance un script du pipeline dans la copie et renvoie le resultat brut."""
     env = dict(os.environ)
-    # Les scripts impriment des emojis : sans cela, la console Windows (cp1252)
-    # fait echouer le pipeline sur un UnicodeEncodeError.
-    env["PYTHONIOENCODING"] = "utf-8"
+    # On RETIRE PYTHONIOENCODING au lieu de l'imposer : chaque script force
+    # lui-même l'UTF-8 sur sa sortie (voir son en-tête). Le laisser passer
+    # masquerait une régression, et ce test est le bon endroit pour la voir :
+    # la sortie étant capturée ici, on est précisément dans le cas où Python
+    # retombe sinon sur cp1252 et où le premier print échouait.
+    env.pop("PYTHONIOENCODING", None)
     return subprocess.run(
         [sys.executable, os.path.join(travail, "src", script)],
         capture_output=True,

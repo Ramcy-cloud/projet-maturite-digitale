@@ -144,7 +144,7 @@ python src/03_sql_transformations.py  # Calcule les scores → table entreprise_
 
 Les chemins sont calculés à partir de l'emplacement des scripts : ils peuvent être lancés depuis n'importe quel dossier. Les journaux d'exécution sont ajoutés dans `logs/pipeline.log`, en UTF-8 (dossier créé automatiquement, non versionné ; le fichier est recréé au prochain lancement s'il est supprimé).
 
-Sous Windows, les scripts affichent des emojis : si la console les refuse (`UnicodeEncodeError`), préfixer les commandes par `PYTHONIOENCODING=utf-8` (ou `$env:PYTHONIOENCODING = "utf-8"` sous PowerShell).
+Les scripts affichent des icônes dans leurs messages, et **imposent eux-mêmes l'UTF-8 sur leur sortie** : aucune variable d'environnement n'est nécessaire. C'est indispensable dès que la sortie n'est pas une console Windows — redirection vers un fichier, tube, Git Bash, CI : Python retombe alors sur l'encodage de la locale (cp1252 sous Windows), où ces icônes n'existent pas, et le premier `print` levait `UnicodeEncodeError` avant que le script n'ait rien fait. `tests/verifie_pipeline.py` retire délibérément `PYTHONIOENCODING` de l'environnement des scripts qu'il lance, pour que ce défaut ne puisse pas revenir sans faire rougir la CI.
 
 ### Vérification
 
