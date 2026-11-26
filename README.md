@@ -1,3 +1,8 @@
+<p align="center">
+  <img src="assets/logo-mark.svg" width="96" height="96"
+       alt="Logo du projet : une jauge dont l aiguille s arrête à 61,9 sur 100">
+</p>
+
 # Maturité digitale des entreprises françaises (INSEE 2023)
 
 Ce projet sert à **mesurer à quel point les entreprises françaises utilisent le cloud, l'intelligence artificielle et l'analyse de données**, secteur par secteur et selon leur taille, à partir de statistiques publiques de l'INSEE.
@@ -252,6 +257,10 @@ projet-maturite-digitale/
 │   └── processed/                    # Entièrement régénérable par le pipeline
 │       ├── maturite_digitale.db      # Base SQLite — NON versionnée (.gitignore)
 │       └── entreprise_score_final.csv # Livrable versionné, source du tableau de bord
+├── assets/                           # Logo du projet (voir assets/README.md)
+│   ├── logo-mark.svg                 #   marque carrée : README, avatar, favicon
+│   ├── logo.svg / logo-dark.svg      #   nom + marque, fond clair / fond sombre
+│   └── logo-mark-512.png             #   rendu matriciel (Power BI, diapositives)
 ├── notebooks/
 │   └── 04_EDA_and_Insights.ipynb
 ├── src/

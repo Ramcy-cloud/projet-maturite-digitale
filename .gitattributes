@@ -7,6 +7,8 @@
 # texte et corrompu par la conversion des fins de ligne.
 *.pbix binary
 *.db binary
+# Le SVG est du texte et se diffe tres bien : il n est pas declare ici.
+*.png binary
 
 # Les notebooks sont du JSON : un diff ligne a ligne y est illisible.
 *.ipynb -diff
