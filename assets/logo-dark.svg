@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 136" width="640" height="136" role="img" aria-label="Maturite digitale des entreprises francaises, INSEE 2023">
+  <title>Maturite digitale des entreprises francaises</title>
+  <g transform="translate(6 12) scale(0.2187)">
+  <rect width="512" height="512" rx="116" fill="#101B30"/>
+    <rect x="1.5" y="1.5" width="509" height="509" rx="114.5" fill="none" stroke="#FFFFFF" stroke-opacity="0.10" stroke-width="3"/>
+      <path d="M 106.00 334.00 A 150.0 150.0 0 0 1 163.65 215.80" fill="none" stroke="#22D3EE" stroke-width="52"><title>cloud - 30 points</title></path>
+      <path d="M 172.12 209.64 A 150.0 150.0 0 0 1 310.78 194.36" fill="none" stroke="#A78BFA" stroke-width="52"><title>IA - 40 points</title></path>
+      <path d="M 310.78 194.36 A 150.0 150.0 0 0 1 339.88 209.64" fill="none" stroke="#2B3850" stroke-width="52"><title>IA - 40 points (au-dela du score)</title></path>
+      <path d="M 348.35 215.80 A 150.0 150.0 0 0 1 406.00 334.00" fill="none" stroke="#2B3850" stroke-width="52"><title>donnees - 30 points (non atteint)</title></path>
+      <path d="M 242.04 328.52 L 302.75 214.84 L 269.96 339.48 Z" fill="#F8FAFC" stroke="#F8FAFC" stroke-width="6" stroke-linejoin="round"/>
+      <circle cx="256" cy="334" r="31" fill="#F8FAFC"/>
+      <circle cx="256" cy="334" r="12" fill="#101B30"/>
+  </g>
+  <text x="142" y="63" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="40" font-weight="700" fill="#E6EDF3">Maturité digitale</text>
+  <text x="143" y="97" font-family="system-ui, -apple-system, Segoe UI, Roboto, Helvetica Neue, Arial, sans-serif" font-size="19" font-weight="500" letter-spacing="0.4" fill="#8B949E">Entreprises françaises · INSEE 2023</text>
+</svg>
